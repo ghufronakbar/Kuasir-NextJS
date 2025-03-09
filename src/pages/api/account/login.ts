@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { db } from "@/config/db";
-import { JWT_SECRET } from "@/pages/constants";
+import { JWT_SECRET } from "@/constants";
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
@@ -32,10 +32,12 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const { id, role } = user;
+    const { id, role, name } = user;
     const data = {
       id,
       role,
+      name,
+      email,
     };
 
     const accessToken = jwt.sign(data, JWT_SECRET, {

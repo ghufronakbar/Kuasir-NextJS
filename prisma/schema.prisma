@@ -32,7 +32,7 @@ enum Role {
 model Stock {
   id       String  @id @default(uuid())
   name     String
-  quantity Int     @default(0)
+  quantity Float   @default(0)
   unit     String
   image    String?
 
@@ -77,7 +77,7 @@ model Product {
 
 model Recipe {
   id     String @id @default(uuid())
-  amount Int
+  amount Float
   price  Float
 
   productId String
@@ -95,6 +95,7 @@ model Order {
   id       String        @id @default(uuid())
   merchant Merchant
   method   PaymentMethod
+  total    Float         @default(0)
 
   businessId String
   business   Business    @relation(fields: [businessId], references: [id])
@@ -121,7 +122,7 @@ enum PaymentMethod {
 model OrderItem {
   id          String  @id @default(uuid())
   name        String
-  amount      Int
+  amount      Float
   price       Float
   description String? @db.Text()
 
@@ -136,11 +137,25 @@ model OrderItem {
   updatedAt DateTime @default(now()) @updatedAt
 }
 
+model ParentBusiness {
+  id   String @id @default(uuid())
+  name String //"Online Food"
+
+  businesses Business[]
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
 model Business {
   id   String @id @default(uuid())
-  name String // "Online Shop Delivery" | "Keranjang Kuning"
+  name String // "Haykatuju Raso" | "Dendeng Majapahit"
 
-  orders Order[]
+  orders           Order[]
+  parentBusiness   ParentBusiness @relation(fields: [parentBusinessId], references: [id])
+  parentBusinessId String
 
   isDeleted Boolean @default(false)
 
@@ -161,7 +176,7 @@ model OutcomeCategory {
 
 model Outcome {
   id          String        @id @default(uuid())
-  amount      Int
+  amount      Float
   price       Float // per satuan
   method      PaymentMethod
   description String?       @db.Text()

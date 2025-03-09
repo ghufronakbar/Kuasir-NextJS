@@ -5,7 +5,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded } = req;
 
-    return res.status(200).json({ message: "HELLO", decoded });
+    return res.status(200).json(decoded);
   } catch (error) {
     console.error(error);
     return res.status(401).json({ message: "Unauthorized" });
@@ -18,4 +18,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default AuthApi(handler, ["OWNER"]);
+export default AuthApi(handler, ["OWNER", "CASHIER", "MANAGER_OPERATIONAL"]);

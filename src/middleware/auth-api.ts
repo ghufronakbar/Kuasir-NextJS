@@ -1,4 +1,4 @@
-import { JWT_SECRET } from "@/pages/constants";
+import { JWT_SECRET } from "@/constants";
 import { $Enums } from "@prisma/client";
 import jwt from "jsonwebtoken";
 import { NextApiRequest, NextApiResponse } from "next";

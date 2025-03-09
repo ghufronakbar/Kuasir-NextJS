@@ -62,23 +62,15 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       orderIds.push(item.orderId as string);
       productIds.push(item.productId as string);
 
-      if (
-        !item.name ||
-        !item.amount ||
-        !item.price ||
-        !item.description ||
-        !item.orderId ||
-        !item.productId
-      ) {
+      if (!item.name || !item.amount || !item.productId) {
+        console.log(item);
         return res.status(400).json({ message: "Please fill all fields" });
       }
 
       const validKeys: (keyof typeof item)[] = [
         "name",
         "amount",
-        "price",
         "description",
-        "orderId",
         "productId",
       ];
       for (const key in item) {
@@ -88,16 +80,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       }
     }
 
-    const uniqueOrderIds = Array.from(new Set(orderIds));
     const uniqueProductIds = Array.from(new Set(productIds));
-
-    const checkOrderId = await db.order.findMany({
-      where: {
-        id: {
-          in: uniqueOrderIds,
-        },
-      },
-    });
 
     const checkProductId = await db.product.findMany({
       where: {
@@ -107,12 +90,14 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    if (checkOrderId.length !== uniqueOrderIds.length) {
-      return res.status(400).json({ message: "Invalid order ids" });
-    }
-
     if (checkProductId.length !== uniqueProductIds.length) {
       return res.status(400).json({ message: "Invalid product ids" });
+    }
+
+    for (const item of orderItems) {
+      item.price =
+        checkProductId.find((product) => product.id === item.productId)
+          ?.price || 0 * item.amount;
     }
 
     const order = await db.order.create({
