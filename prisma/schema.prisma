@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String
+  role     Role
+
+  logActivities LogActivity[]
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum Role {
+  OWNER
+  MANAGER_OPERATIONAL
+  CASHIER
+}
+
+model Stock {
+  id       String  @id @default(uuid())
+  name     String
+  quantity Int     @default(0)
+  unit     String
+  image    String?
+
+  recipes  Recipe[]
+  outcomes Outcome[]
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model ProductCategory {
+  id   String @id @default(uuid())
+  name String
+
+  products Product[]
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Product {
+  id          String  @id @default(uuid())
+  name        String
+  price       Float
+  description String? @db.Text()
+  image       String?
+
+  productCategoryId String
+  productCategory   ProductCategory @relation(fields: [productCategoryId], references: [id])
+  recipes           Recipe[]
+  orderItems        OrderItem[]
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Recipe {
+  id     String @id @default(uuid())
+  amount Int
+  price  Float
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  stockId   String
+  stock     Stock   @relation(fields: [stockId], references: [id])
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Order {
+  id       String        @id @default(uuid())
+  merchant Merchant
+  method   PaymentMethod
+
+  businessId String
+  business   Business    @relation(fields: [businessId], references: [id])
+  orderItems OrderItem[]
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum Merchant {
+  GrabFood
+  GoFood
+  ShopeeFood
+}
+
+enum PaymentMethod {
+  Cash
+  QRIS
+  Transfer
+}
+
+model OrderItem {
+  id          String  @id @default(uuid())
+  name        String
+  amount      Int
+  price       Float
+  description String? @db.Text()
+
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Business {
+  id   String @id @default(uuid())
+  name String // "Online Shop Delivery" | "Keranjang Kuning"
+
+  orders Order[]
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model OutcomeCategory {
+  id       String    @id @default(uuid())
+  name     String // nanti ini diisi "dendeng" / "nasgor" jadi untuk memudahkan beli buat apa
+  outcomes Outcome[]
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Outcome {
+  id          String        @id @default(uuid())
+  amount      Int
+  price       Float // per satuan
+  method      PaymentMethod
+  description String?       @db.Text()
+
+  stockId           String
+  stock             Stock           @relation(fields: [stockId], references: [id])
+  outcomeCategoryId String
+  outcomeCategory   OutcomeCategory @relation(fields: [outcomeCategoryId], references: [id])
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  title       String
+  amount      Float
+  description String?         @db.Text()
+  type        TransactionType
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum TransactionType {
+  Income
+  Expense
+}
+
+model LogActivity {
+  id             String  @id @default(uuid())
+  description    String  @db.Text()
+  type           LogType
+  referenceId    String
+  referenceModel String
+  before         Json?
+  detail         Json    @default("{}")
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum LogType {
+  CREATE
+  UPDATE
+  DELETE
+}
