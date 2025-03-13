@@ -7,7 +7,6 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
   const id = (req.query.id as string) || "";
   const outcome = await db.outcome.findUnique({
     include: {
-      outcomeCategory: true,
       stock: true,
     },
     where: {
@@ -22,7 +21,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
     const { decoded, body } = req;
-    const { amount, price, method, stockId, outcomeCategoryId } = body;
+    const { amount, price, method, stockId, category } = body;
     if (
       !amount ||
       isNaN(Number(amount)) ||
@@ -30,7 +29,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       isNaN(Number(price)) ||
       !method ||
       !stockId ||
-      !outcomeCategoryId
+      !category
     )
       return res.status(400).json({ message: "All fields are required" });
 
@@ -43,7 +42,6 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         id,
       },
       include: {
-        outcomeCategory: true,
         stock: true,
       },
     });
@@ -51,12 +49,6 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
     const checkStock = await db.stock.findUnique({
       where: {
         id: stockId,
-      },
-    });
-
-    const checkCategory = await db.outcomeCategory.findUnique({
-      where: {
-        id: outcomeCategoryId,
       },
     });
 
@@ -68,17 +60,13 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(400).json({ message: "Stock not found" });
     }
 
-    if (!checkCategory) {
-      return res.status(400).json({ message: "Outcome category not found" });
-    }
-
     const outcome = await db.outcome.update({
       data: {
         amount: Number(amount),
         price: Number(price),
         method: method as $Enums.PaymentMethod,
         stockId: stockId,
-        outcomeCategoryId: outcomeCategoryId,
+        category: category,
       },
       where: {
         id,
@@ -97,7 +85,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         referenceModel: "Outcome",
         userId: decoded?.id || "",
         type: "UPDATE",
-        description: `${user?.name} edit outcome Rp. ${checkId.price} for ${checkId.amount} ${checkId.stock.name} to Rp. ${outcome.price} for ${outcome.amount} ${checkStock.name}`,
+        description: `${user?.name} edit outcome Rp. ${checkId.price} for ${checkId.amount} ${checkId?.stock.name} to Rp. ${outcome.price} for ${outcome.amount} ${checkStock.name}`,
         detail: outcome,
         before: checkId,
       },
