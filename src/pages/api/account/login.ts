@@ -44,6 +44,8 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       expiresIn: "1d",
     });
 
+    // res.setHeader("Set-Cookie", []);
+
     return res
       .status(200)
       .json({ message: "Login successful", data: { ...data, accessToken } });

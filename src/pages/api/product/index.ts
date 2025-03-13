@@ -21,25 +21,43 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded, body } = req;
-    const { name, price, description, image, productCategoryId } = body;
+    const { name, price, description, image, productCategory } = body;
     if (
       !name ||
       typeof name !== "string" ||
       !price ||
       isNaN(Number(price)) ||
-      !productCategoryId ||
-      typeof productCategoryId !== "string"
-    )
+      !productCategory ||
+      typeof productCategory !== "string"
+    ) {
+      console.log({ name, price, productCategory });
       return res.status(400).json({ message: "All fields are required" });
+    }
 
-    const checkProductCategory = await db.productCategory.findUnique({
+    const checkProductCategory = await db.productCategory.findFirst({
       where: {
-        id: productCategoryId,
+        name: productCategory,
       },
     });
 
+    let productCategoryId = checkProductCategory?.id;
     if (!checkProductCategory) {
-      return res.status(400).json({ message: "Product category not found" });
+      const pc = await db.productCategory.create({
+        data: {
+          name: productCategory,
+        },
+      });
+      productCategoryId = pc.id;
+    } else if (checkProductCategory && checkProductCategory.isDeleted) {
+      const pc = await db.productCategory.update({
+        where: {
+          id: checkProductCategory.id,
+        },
+        data: {
+          isDeleted: false,
+        },
+      });
+      productCategoryId = pc.id;
     }
 
     const product = await db.product.create({
@@ -48,7 +66,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         price: Number(price),
         description: description || null,
         image: image || null,
-        productCategoryId,
+        productCategoryId: productCategoryId || "",
       },
     });
 

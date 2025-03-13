@@ -1,42 +1,39 @@
 import {
   Business,
+  LogActivity,
   Order,
   OrderItem,
   Outcome,
-  OutcomeCategory,
   ParentBusiness,
   Product,
   ProductCategory,
   Recipe,
   Stock,
+  User,
 } from "@prisma/client";
+
+// MASTER DATA
 
 export interface DetailBusiness extends Business {
   orders: DetailOrder[];
   parentBusiness: DetailParentBusiness;
+  _count: { orders: number };
 }
 
 export interface DetailParentBusiness extends ParentBusiness {
   businesses: Business[];
-}
-
-export interface DetailOrder extends Order {
-  orderItems: DetailOrderItem[];
-  business: DetailBusiness;
-}
-
-export interface DetailOrderItem extends OrderItem {
-  product: DetailProduct;
-  order: DetailOrder;
+  _count: { businesses: number };
 }
 
 export interface DetailProduct extends Product {
   productCategory: DetailProductCategory;
   recipes: DetailRecipe[];
+  _count: { recipes: number };
 }
 
 export interface DetailProductCategory extends ProductCategory {
   products: DetailProduct[];
+  _count: { products: number };
 }
 
 export interface DetailRecipe extends Recipe {
@@ -49,11 +46,32 @@ export interface DetailStock extends Stock {
   outcomes: DetailOutcome[];
 }
 
-export interface DetailOutcome extends Outcome {
-  stock: DetailStock;
-  outcomeCategory: DetailOutcomeCategory;
+// TRANSACTION IN DATA
+
+export interface DetailOrder extends Order {
+  orderItems: DetailOrderItem[];
+  business: DetailBusiness;
+  _count: { orderItems: number };
 }
 
-export interface DetailOutcomeCategory extends OutcomeCategory {
-  outcomes: DetailOutcome[];
+export interface DetailOrderItem extends OrderItem {
+  product: DetailProduct;
+  order: DetailOrder;
+  _count: { order: number };
+}
+
+export interface DetailOrderByDate {
+  date: string;
+  orders: DetailOrder[];
+}
+
+// TRANSACTION OUT DATA
+
+export interface DetailOutcome extends Outcome {
+  stock: DetailStock;
+}
+
+// LOG DATA
+export interface DetailLogActivity extends LogActivity {
+  user: User;
 }

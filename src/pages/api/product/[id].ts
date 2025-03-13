@@ -11,6 +11,9 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
         include: {
           stock: true,
         },
+        where: {
+          isDeleted: false,
+        },
       },
     },
     where: {
@@ -29,32 +32,48 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
     const { decoded, body } = req;
-    const { name, price, description, image, productCategoryId } = body;
+    const { name, price, description, image, productCategory } = body;
     if (
       !name ||
       typeof name !== "string" ||
       !price ||
       isNaN(Number(price)) ||
-      !productCategoryId ||
-      typeof productCategoryId !== "string"
+      !productCategory ||
+      typeof productCategory !== "string"
     )
       return res.status(400).json({ message: "All fields are required" });
 
-    const checkProductCategory = await db.productCategory.findUnique({
+    const checkProductCategory = await db.productCategory.findFirst({
       where: {
-        id: productCategoryId,
+        name: productCategory,
       },
     });
+
+    let productCategoryId = checkProductCategory?.id;
+    if (!checkProductCategory) {
+      const pc = await db.productCategory.create({
+        data: {
+          name: productCategory,
+        },
+      });
+      productCategoryId = pc.id;
+    } else if (checkProductCategory && checkProductCategory.isDeleted) {
+      const pc = await db.productCategory.update({
+        where: {
+          id: checkProductCategory.id,
+        },
+        data: {
+          isDeleted: false,
+        },
+      });
+      productCategoryId = pc.id;
+    }
 
     const checkId = await db.product.findUnique({
       where: {
         id,
       },
     });
-
-    if (!checkProductCategory) {
-      return res.status(400).json({ message: "Product category not found" });
-    }
 
     if (!checkId) {
       return res.status(400).json({ message: "Product not found" });

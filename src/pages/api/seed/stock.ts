@@ -6,6 +6,14 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const check = await db.stock.findMany({});
+  // await db.stock.updateMany({
+  //   where: {
+  //     unit: "Tabung",
+  //   },
+  //   data: {
+  //     unit: "item",
+  //   },
+  // });
   if (check.length > 0)
     return res.status(400).json({ message: "Stock already exist" });
   const stock = await db.stock.createMany({

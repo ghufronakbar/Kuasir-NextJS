@@ -4,19 +4,23 @@ import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
   const id = (req.query.id as string) || "";
-  const business = await db.business.findUnique({
+  const pb = await db.parentBusiness.findUnique({
     where: {
       id,
     },
     include: {
-      orders: {
-        orderBy: {
-          createdAt: "desc",
-        },
+      businesses: {
         include: {
-          orderItems: {
+          orders: {
             orderBy: {
               createdAt: "desc",
+            },
+            include: {
+              orderItems: {
+                orderBy: {
+                  createdAt: "desc",
+                },
+              },
             },
           },
         },
@@ -24,28 +28,23 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  if (!business) {
-    return res.status(404).json({ message: "Business not found" });
+  if (!pb) {
+    return res.status(404).json({ message: "Parent business not found" });
   }
 
-  if (business?.isDeleted) {
-    return res.status(404).json({ message: "Business not found" });
+  if (pb?.isDeleted) {
+    return res.status(404).json({ message: "Parent business not found" });
   }
 
-  return res.status(200).json({ message: "OK", data: business });
+  return res.status(200).json({ message: "OK", data: pb });
 };
 
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
     const { decoded, body } = req;
-    const { name, parentBusiness } = body;
-    if (
-      !name ||
-      typeof name !== "string" ||
-      !parentBusiness ||
-      typeof parentBusiness !== "string"
-    )
+    const { name } = body;
+    if (!name || typeof name !== "string")
       return res.status(400).json({ message: "All fields are required" });
     const checkId = await db.business.findUnique({
       where: {
@@ -53,7 +52,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const checkName = await db.business.findFirst({
+    const checkName = await db.parentBusiness.findFirst({
       where: {
         name: {
           equals: name,
@@ -67,46 +66,18 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     if (!checkId) {
-      return res.status(400).json({ message: "Business not found" });
+      return res.status(400).json({ message: "Parent business not found" });
     }
 
     if (checkId && checkName && checkName.id !== checkId.id) {
-      return res.status(400).json({ message: "Business name already exist" });
+      return res
+        .status(400)
+        .json({ message: "Parent business name already exist" });
     }
 
-    const checkParentBusiness = await db.parentBusiness.findFirst({
-      where: {
-        name: parentBusiness,
-      },
-    });
-
-    let parentBusinessId = checkParentBusiness?.id;
-
-    if (!checkParentBusiness) {
-      const pb = await db.parentBusiness.create({
-        data: {
-          name: parentBusiness,
-        },
-      });
-      parentBusinessId = pb.id;
-    } else if (checkParentBusiness.isDeleted) {
-      const pb = await db.parentBusiness.update({
-        where: {
-          id: checkParentBusiness.id,
-        },
-        data: {
-          isDeleted: false,
-        },
-      });
-      parentBusinessId = pb.id;
-    }
-
-    console.log({ parentBusinessId });
-
-    const business = await db.business.update({
+    const pb = await db.parentBusiness.update({
       data: {
         name,
-        parentBusinessId,
       },
       where: {
         id,
@@ -121,19 +92,19 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
 
     const create = await db.logActivity.create({
       data: {
-        referenceId: business.id,
-        referenceModel: "Business",
+        referenceId: pb.id,
+        referenceModel: "ParentBusiness",
         userId: decoded?.id || "",
         type: "UPDATE",
-        description: `${user?.name} edit business ${checkId.name} to ${business.name}`,
-        detail: business,
+        description: `${user?.name} edit parent business ${checkId.name} to ${pb.name}`,
+        detail: pb,
         before: checkId,
       },
     });
 
     return res
       .status(200)
-      .json({ message: "Successfull edit business", data: create });
+      .json({ message: "Successfull edit parent business", data: create });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -144,7 +115,7 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded } = req;
     const id = (req.query.id as string) || "";
-    const check = await db.business.findUnique({
+    const check = await db.parentBusiness.findUnique({
       where: {
         id,
       },
@@ -156,10 +127,10 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     if (!check || !user) {
-      return res.status(400).json({ message: "Business not found" });
+      return res.status(400).json({ message: "Parent business not found" });
     }
 
-    const business = await db.business.update({
+    const business = await db.parentBusiness.update({
       where: {
         id: (req.query.id as string) || "",
       },
@@ -171,16 +142,16 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
     await db.logActivity.create({
       data: {
         referenceId: business.id,
-        referenceModel: "Business",
+        referenceModel: "ParentBusiness",
         userId: (req.query.id as string) || "",
         type: "DELETE",
-        description: `${user.name} delete business ${check.name}`,
+        description: `${user.name} delete parent business ${check.name}`,
         detail: business,
       },
     });
 
     return res.status(200).json({
-      message: "Successfull delete business",
+      message: "Successfull delete parent business",
       data: business,
     });
   } catch (error) {

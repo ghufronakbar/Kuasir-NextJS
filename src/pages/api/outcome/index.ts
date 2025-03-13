@@ -9,7 +9,6 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
       createdAt: "desc",
     },
     include: {
-      outcomeCategory: true,
       stock: true,
     },
     where: {
@@ -23,7 +22,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded, body } = req;
-    const { amount, price, method, stockId, outcomeCategoryId } = body;
+    const { amount, price, method, stockId, category, description } = body;
     if (
       !amount ||
       isNaN(Number(amount)) ||
@@ -31,9 +30,11 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       isNaN(Number(price)) ||
       !method ||
       !stockId ||
-      !outcomeCategoryId
-    )
+      !category
+    ) {
+      console.log({ amount, price, method, stockId, category });
       return res.status(400).json({ message: "All fields are required" });
+    }
 
     if (!$Enums.PaymentMethod[method as keyof typeof $Enums.PaymentMethod]) {
       return res.status(400).json({ message: "Invalid payment method" });
@@ -45,18 +46,8 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const checkCategory = await db.outcomeCategory.findUnique({
-      where: {
-        id: outcomeCategoryId,
-      },
-    });
-
     if (!checkStock) {
       return res.status(400).json({ message: "Stock not found" });
-    }
-
-    if (!checkCategory) {
-      return res.status(400).json({ message: "Outcome category not found" });
     }
 
     const outcome = await db.outcome.create({
@@ -65,7 +56,17 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         price: Number(price),
         method: method as $Enums.PaymentMethod,
         stockId: stockId,
-        outcomeCategoryId: outcomeCategoryId,
+        category,
+        description,
+      },
+    });
+
+    await db.stock.update({
+      where: {
+        id: stockId,
+      },
+      data: {
+        quantity: checkStock.quantity + Number(amount),
       },
     });
 

@@ -1,7 +1,7 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { LoadingData } from "@/components/material/loading-data";
 import { api } from "@/config/api";
-import { LOGO } from "@/constants/image";
+import { PLACEHOLDER } from "@/constants/image";
 import formatRupiah from "@/helper/formatRupiah";
 import { makeToast } from "@/helper/makeToast";
 import { Api } from "@/models/response";
@@ -58,7 +58,7 @@ const CashierPage = () => {
                       className="border border-gray-200 rounded-lg p-4 flex flex-col gap-2"
                     >
                       <Image
-                        src={product.image || LOGO}
+                        src={product.image || PLACEHOLDER}
                         alt={product.name}
                         width={100}
                         height={100}
@@ -134,7 +134,7 @@ const CashierPage = () => {
                 <div className="flex flex-col gap-2" key={index}>
                   <div className="flex flex-row gap-4 w-full !aspect-[6/1] max-h-[140px] border border-gray-200 rounded-lg p-4 relative ">
                     <Image
-                      src={item.image || LOGO}
+                      src={item.image || PLACEHOLDER}
                       alt={item.name}
                       width={100}
                       height={100}

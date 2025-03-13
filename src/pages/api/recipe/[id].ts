@@ -25,9 +25,10 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
     const { decoded, body } = req;
-    const { amount, price, stockId, productId } = body;
-    if (!amount || isNaN(Number(amount)) || !price || isNaN(Number(price)))
+    const { amount, stockId, productId } = body;
+    if (!amount || isNaN(Number(amount))) {
       return res.status(400).json({ message: "All fields are required" });
+    }
 
     const checkId = await db.recipe.findUnique({
       where: {
@@ -39,6 +40,14 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       where: {
         id: stockId,
       },
+      include: {
+        outcomes: {
+          select: {
+            amount: true,
+            price: true,
+          },
+        },
+      },
     });
 
     const checkProduct = await db.product.findUnique({
@@ -47,19 +56,29 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    if (!checkId)
-      return res.status(400).json({ message: "Recipe already exist" });
+    if (!checkId) return res.status(400).json({ message: "Recipe not found" });
     if (!checkStock)
       return res.status(400).json({ message: "Stock not found" });
     if (!checkProduct)
       return res.status(400).json({ message: "Product not found" });
 
+    let totalPrice = 0;
+    let totalProduct = 0;
+
+    for (const outcome of checkStock.outcomes) {
+      totalPrice += outcome.price;
+      totalProduct += outcome.amount;
+    }
+
+    const averagePrice = totalPrice / totalProduct || 0;
+    const finalPrice = Number(averagePrice) * Number(amount);
+
     const recipe = await db.recipe.update({
       data: {
         amount: Number(amount),
-        price: Number(price),
-        stockId: stockId,
-        productId: productId,
+        price: Number(finalPrice),
+        stockId: checkStock.id,
+        productId: checkProduct.id,
       },
       include: {
         product: true,
@@ -96,6 +115,57 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 };
 
+const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
+  try {
+    const id = (req.query.id as string) || "";
+    const { decoded } = req;
+    const recipe = await db.recipe.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        product: true,
+        stock: true,
+      },
+    });
+
+    if (!recipe) return res.status(400).json({ message: "Recipe not found" });
+
+    await db.recipe.update({
+      data: {
+        isDeleted: true,
+      },
+      where: {
+        id,
+      },
+    });
+
+    const user = await db.user.findUnique({
+      where: {
+        id: decoded?.id || "",
+      },
+    });
+
+    await db.logActivity.create({
+      data: {
+        referenceId: recipe.id,
+        referenceModel: "Recipe",
+        userId: decoded?.id || "",
+        type: "DELETE",
+        description: `${user?.name} delete recipe ${recipe.stock.name} for ${recipe.product.name}`,
+        detail: recipe,
+      },
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Successfull delete recipe", data: recipe });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 const handler = (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === "GET") {
     return AuthApi(GET, ["OWNER", "CASHIER", "MANAGER_OPERATIONAL"])(req, res);
@@ -103,6 +173,10 @@ const handler = (req: NextApiRequest, res: NextApiResponse) => {
 
   if (req.method === "PUT") {
     return AuthApi(PUT, ["OWNER"])(req, res);
+  }
+
+  if (req.method === "DELETE") {
+    return AuthApi(DELETE, ["OWNER"])(req, res);
   }
 };
 

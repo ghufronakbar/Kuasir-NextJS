@@ -60,8 +60,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchAuth();
-  }, []);
+    if (router.isReady) {
+      fetchAuth();
+    }
+  }, [router]);
 
   const signOut = async () => {
     // eslint-disable-next-line react-hooks/rules-of-hooks

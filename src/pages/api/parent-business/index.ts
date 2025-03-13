@@ -3,23 +3,19 @@ import AuthApi from "@/middleware/auth-api";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
-  const outcomeCategory = await db.outcomeCategory.findMany({
+  const pbs = await db.parentBusiness.findMany({
     orderBy: {
       createdAt: "desc",
     },
     include: {
-      outcomes: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
+      businesses: true,
     },
     where: {
       isDeleted: false,
     },
   });
 
-  return res.status(200).json({ message: "OK", data: outcomeCategory });
+  return res.status(200).json({ message: "OK", data: pbs });
 };
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -28,31 +24,21 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
     const { name } = body;
     if (!name || typeof name !== "string")
       return res.status(400).json({ message: "All fields are required" });
-    const checkName = await db.outcomeCategory.findFirst({
+    const checkName = await db.parentBusiness.findFirst({
       where: {
-        AND: [
-          {
-            name: {
-              equals: name,
-              mode: "insensitive",
-            },
-          },
-          {
-            isDeleted: false,
-          },
-        ],
-      },
-      select: {
-        name: true,
+        name: {
+          equals: name,
+          mode: "insensitive",
+        },
       },
     });
 
-    if (checkName)
+    if (checkName && !checkName.isDeleted)
       return res
         .status(400)
-        .json({ message: "Outcome category name already exist" });
+        .json({ message: "Parent business name already exist" });
 
-    const outcomeCategory = await db.outcomeCategory.create({
+    const pb = await db.parentBusiness.create({
       data: {
         name,
       },
@@ -66,21 +52,18 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
 
     await db.logActivity.create({
       data: {
-        referenceId: outcomeCategory.id,
-        referenceModel: "OutcomeCategory",
+        referenceId: pb.id,
+        referenceModel: "ParentBusiness",
         userId: decoded?.id || "",
         type: "CREATE",
-        description: `${user?.name} create outcome category ${outcomeCategory.name}`,
-        detail: outcomeCategory,
+        description: `${user?.name} create parent business ${pb.name}`,
+        detail: pb,
       },
     });
 
     return res
       .status(200)
-      .json({
-        message: "Successfull create outcome category",
-        data: outcomeCategory,
-      });
+      .json({ message: "Successfull create parent business", data: pb });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });

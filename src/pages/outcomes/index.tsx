@@ -3,22 +3,26 @@ import { api } from "@/config/api";
 import formatDate from "@/helper/formatDate";
 import { AuthPage } from "@/middleware/auth-page";
 import { Api } from "@/models/response";
-import { DetailBusiness, DetailParentBusiness } from "@/models/schema";
 import { useEffect, useState } from "react";
 import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
+import { DetailOutcome, DetailStock } from "@/models/schema";
+import { $Enums } from "@prisma/client";
+import Image from "next/image";
+import { PLACEHOLDER } from "@/constants/image";
+import formatRupiah from "@/helper/formatRupiah";
 
-const THEAD = ["No", "Name", "Parent Business", "Created At", ""];
+const THEAD = ["No", "", "Name", "Amount", "Price", "Method", "Created At", ""];
 
-const BusinessPage = () => {
+const OutcomesPage = () => {
   const {
     data,
     Loading,
     form,
     onChange,
-    parents,
+    categories,
     other,
     setOther,
     open,
@@ -28,10 +32,12 @@ const BusinessPage = () => {
     isOther,
     mutate,
     confirmDelete,
-  } = useBusiness();
+    stocks,
+    methods,
+  } = useOutcomes();
   return (
     <DashboardLayout
-      title="Business"
+      title="Outcomes"
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -53,7 +59,7 @@ const BusinessPage = () => {
               <Dialog.Content>
                 <Dialog.Header>
                   <Dialog.Title className="font-semibold">
-                    {form.id === "-" ? "Create Business" : "Edit Business"}
+                    {form.id === "-" ? "Create Outcomes" : "Edit Outcomes"}
                   </Dialog.Title>
                   <Dialog.CloseTrigger asChild>
                     <CloseButton size="sm" />
@@ -67,40 +73,84 @@ const BusinessPage = () => {
                       mutate();
                     }}
                   >
-                    <Label className="mt-2 font-medium">Name</Label>
-                    <input
-                      value={form.name}
-                      onChange={(e) => onChange(e, "name")}
-                      placeholder="Haykatuju"
-                      type="text"
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                    />
-                    <Label className="mt-2 font-medium">Parent Business</Label>
+                    <Label className="mt-2 font-medium">Stock Name</Label>
                     <select
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                      value={form.parentBusiness}
-                      onChange={(e) => onChange(e, "parentBusiness")}
+                      value={form.stockId}
+                      onChange={(e) => onChange(e, "stockId")}
                     >
-                      {parents.map((item) => (
+                      <option value="" disabled hidden>
+                        Select Stock
+                      </option>
+                      {stocks.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name} - {item.unit}
+                        </option>
+                      ))}
+                    </select>
+                    <Label className="mt-2 font-medium">Category</Label>
+                    <select
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                      value={form.category}
+                      onChange={(e) => onChange(e, "category")}
+                    >
+                      <option value="" disabled hidden>
+                        Select Category
+                      </option>
+                      {categories.map((item) => (
                         <option key={item} value={item}>
                           {item}
                         </option>
                       ))}
-                    </select>
+                    </select>                    
                     {isOther && (
                       <>
                         <Label className="mt-2 font-medium">
-                          Name Parent Business
+                          Category Name
                         </Label>
                         <input
                           value={other}
                           onChange={(e) => setOther(e.target.value)}
-                          placeholder="Haykatuju"
+                          placeholder="Nasi Goreng"
                           type="text"
                           className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                         />
                       </>
                     )}
+                    <Label className="mt-2 font-medium">Amount</Label>
+                    <input
+                      value={form.amount}
+                      onChange={(e) => onChange(e, "amount")}
+                      placeholder="200"
+                      type="text"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
+                    <Label className="mt-2 font-medium">Price</Label>
+                    <input
+                      value={form.price}
+                      onChange={(e) => onChange(e, "price")}
+                      placeholder="200"
+                      type="text"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
+                    <Label className="mt-2 font-medium">Payment Method</Label>
+                    <select
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                      value={form.method}
+                      onChange={(e) => onChange(e, "method")}
+                    >
+                      {methods.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                    <Label className="mt-2 font-medium">Description</Label>
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => onChange(e, "description")}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
                     <Button
                       type="submit"
                       className="bg-teal-500 font-semibold text-white mt-4"
@@ -135,16 +185,26 @@ const BusinessPage = () => {
                 >
                   {index + 1}
                 </th>
+                <th scope="row" className="px-6 py-4">
+                  <Image
+                    src={item.stock?.image || PLACEHOLDER}
+                    alt=""
+                    width={400}
+                    height={400}
+                    className="min-w-12 min-h-12 w-12 h-12 rounded-lg object-cover"
+                  />
+                </th>
                 <th
                   scope="row"
                   className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
                 >
-                  {item.name}
+                  {item.stock.name}
                 </th>
-                <td className="px-6 py-4">{item.parentBusiness.name}</td>
                 <td className="px-6 py-4">
-                  {formatDate(item.createdAt, true)}
+                  {item.amount} {item.stock.unit}
                 </td>
+                <td className="px-6 py-4">{formatRupiah(item.price)}</td>
+                <td className="px-6 py-4">{formatDate(item.createdAt)}</td>
                 <td className="px-6 py-4">
                   <div className="flex flex-row gap-2 font-medium">
                     <Button
@@ -171,65 +231,91 @@ const BusinessPage = () => {
   );
 };
 
-export default AuthPage(BusinessPage, ["CASHIER", "OWNER"]);
+export default AuthPage(OutcomesPage, ["CASHIER", "OWNER"]);
 
-interface BusinessDTO {
+interface OutcomeDTO {
   id: string;
-  name: string;
-  parentBusiness: string;
+  amount: number;
+  price: number;
+  method: string;
+  stockId: string;
+  category: string;
+  description: string;
 }
 
-const initBusinessDTO: BusinessDTO = {
+const initOutcomeDTO: OutcomeDTO = {
   id: "-",
-  name: "",
-  parentBusiness: "",
+  amount: 0,
+  price: 0,
+  method: "Cash",
+  category: "",
+  description: "",
+  stockId: "",
 };
 
-const useBusiness = () => {
-  const [data, setData] = useState<DetailBusiness[]>([]);
+const useOutcomes = () => {
+  const [data, setData] = useState<DetailOutcome[]>([]);
   const [loading, setLoading] = useState(false);
-  const [parents, setParents] = useState<string[]>([]);
-  const [form, setForm] = useState<BusinessDTO>(initBusinessDTO);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [stocks, setStocks] = useState<DetailStock[]>([]);
+  const [form, setForm] = useState<OutcomeDTO>(initOutcomeDTO);
   const [other, setOther] = useState("");
   const [open, setOpen] = useState(false);
+  const methods: string[] = Object.values($Enums.PaymentMethod);
 
   const onChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    key: keyof BusinessDTO
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+    key: keyof OutcomeDTO
   ) => {
     setForm({ ...form, [key]: e.target.value });
   };
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailBusiness[]>>("/business");
+    const response = await api.get<Api<DetailOutcome[]>>("/outcome");
     setData(response.data.data);
+    const uniqueCategories = Array.from(
+      new Set(response.data.data.map((item) => item.category))
+    )
+      .filter((item) => item !== "")
+      .map((item) => item);
+    setCategories([...uniqueCategories, "Other"]);
+    // setForm({ ...form, category: uniqueCategories?.[0] || "Other" });
     setLoading(false);
   };
 
-  const fetchParents = async () => {
-    const res = await api.get<Api<DetailParentBusiness[]>>("/parent-business");
-    setParents([...res.data.data.map((item) => item.name), "Other"]);
-    setForm({ ...form, id: res.data.data?.[0]?.id || "-" });
+  const fetchStocks = async () => {
+    const res = await api.get<Api<DetailStock[]>>("/stock");
+    setStocks(res.data.data);
+    // setForm({ ...form, stockId: res.data.data?.[0]?.id || "-" });
   };
 
-  const onClickDetail = (item: DetailBusiness) => {
+  const onClickDetail = (item: DetailOutcome) => {
     setOpen(true);
-    setForm({ ...item, parentBusiness: item.parentBusiness.name });
+    setForm({
+      amount: item.amount,
+      category: item.category,
+      description: item.description || "",
+      id: item.id,
+      method: item.method,
+      price: item.price,
+      stockId: item.stockId,
+    });
   };
 
   const onClose = () => {
-    setForm(initBusinessDTO);
+    setForm(initOutcomeDTO);
     setOpen(false);
   };
 
   const fetching = async () => {
-    await Promise.all([fetchData(), fetchParents()]);
+    await Promise.all([fetchData(), fetchStocks()]);
   };
 
   useEffect(() => {
-    fetchData();
-    fetchParents();
+    fetching();
   }, []);
 
   const mutate = async () => {
@@ -245,7 +331,7 @@ const useBusiness = () => {
     } catch (error) {
       makeToast("error", error);
     } finally {
-      setForm(initBusinessDTO);
+      setForm(initOutcomeDTO);
       setLoading(false);
       setOpen(false);
     }
@@ -253,9 +339,9 @@ const useBusiness = () => {
 
   const create = async () => {
     try {
-      const res = await api.post("/business", {
-        name: form.name,
-        parentBusiness: isOther ? other : form.parentBusiness,
+      const res = await api.post("/outcome", {
+        ...form,
+        category: isOther ? other : form.category,
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -266,9 +352,9 @@ const useBusiness = () => {
 
   const edit = async () => {
     try {
-      const res = await api.put(`/business/${form.id}`, {
-        name: form.name,
-        parentBusiness: isOther ? other : form.parentBusiness,
+      const res = await api.put(`/outcome/${form.id}`, {
+        ...form,
+        category: isOther ? other : form.category,
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -286,12 +372,12 @@ const useBusiness = () => {
     );
   };
 
-  const confirmDelete = async (item: DetailBusiness) => {
+  const confirmDelete = async (item: DetailOutcome) => {
     try {
       const isConfirm = confirm("Are you sure you want to delete this data?");
       if (!isConfirm || loading) return;
       setLoading(true);
-      const res = await api.delete(`/business/${item.id}`);
+      const res = await api.delete(`/outcome/${item.id}`);
       await fetchData();
       makeToast("success", res?.data?.message);
       setLoading(false);
@@ -302,12 +388,12 @@ const useBusiness = () => {
     }
   };
 
-  const isOther = form.parentBusiness === "Other";
+  const isOther = form.category === "Other";
 
   return {
     data,
     Loading,
-    parents,
+    categories,
     onChange,
     form,
     other,
@@ -319,5 +405,7 @@ const useBusiness = () => {
     isOther,
     mutate,
     confirmDelete,
+    stocks,
+    methods,
   };
 };

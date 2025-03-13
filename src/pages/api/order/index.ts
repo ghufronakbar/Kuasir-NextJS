@@ -1,10 +1,12 @@
 import { db } from "@/config/db";
+import formatDate from "@/helper/formatDate";
 import AuthApi from "@/middleware/auth-api";
+import { DetailOrder, DetailOrderByDate } from "@/models/schema";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
-  const orders = await db.order.findMany({
+  const orders = (await db.order.findMany({
     orderBy: {
       createdAt: "desc",
     },
@@ -17,15 +19,31 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
           product: true,
         },
       },
+      business: true,
     },
     where: {
       isDeleted: false,
     },
-  });
+  })) as DetailOrder[];
+
+  const filteredOrders: DetailOrderByDate[] = [];
+
+  for (const order of orders) {
+    const dateKey = formatDate(order.createdAt, true);
+
+    if (!filteredOrders.find((o) => o.date === dateKey)) {
+      filteredOrders.push({
+        date: dateKey,
+        orders: [order],
+      });
+    } else {
+      filteredOrders.find((o) => o.date === dateKey)?.orders.push(order);
+    }
+  }
 
   return res.status(200).json({
     message: "OK",
-    data: orders,
+    data: filteredOrders,
   });
 };
 
@@ -93,11 +111,14 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
     if (checkProductId.length !== uniqueProductIds.length) {
       return res.status(400).json({ message: "Invalid product ids" });
     }
-
+    let total = 0;
     for (const item of orderItems) {
       item.price =
         checkProductId.find((product) => product.id === item.productId)
           ?.price || 0 * item.amount;
+
+      console.log("item.price ", item.price);
+      total += item.price;
     }
 
     const order = await db.order.create({
@@ -106,6 +127,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         method:
           $Enums.PaymentMethod[method as keyof typeof $Enums.PaymentMethod],
         businessId,
+        total,
         orderItems: {
           createMany: {
             data: orderItems,

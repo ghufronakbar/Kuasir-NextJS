@@ -22,19 +22,34 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded, body } = req;
-    const { amount, price, stockId, productId } = body;
-    if (!amount || isNaN(Number(amount)) || !price || isNaN(Number(price)))
+    const { amount, stockId, productId } = body;
+    if (!amount || isNaN(Number(amount)))
       return res.status(400).json({ message: "All fields are required" });
 
     const checkStock = await db.stock.findUnique({
       where: {
         id: stockId,
       },
+      include: {
+        outcomes: {
+          select: {
+            amount: true,
+            price: true,
+          },
+        },
+      },
     });
 
     const checkProduct = await db.product.findUnique({
       where: {
         id: productId,
+      },
+      include: {
+        recipes: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
 
@@ -43,10 +58,26 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
     if (!checkProduct)
       return res.status(400).json({ message: "Product not found" });
 
+    if (checkProduct.recipes.includes(stockId))
+      return res
+        .status(400)
+        .json({ message: "Product already has this stock" });
+
+    let totalPrice = 0;
+    let totalProduct = 0;
+
+    for (const outcome of checkStock.outcomes) {
+      totalPrice += outcome.price;
+      totalProduct += outcome.amount;
+    }
+
+    const averagePrice = totalPrice / totalProduct || 0;
+    const finalPrice = Number(averagePrice) * Number(amount);
+
     const recipe = await db.recipe.create({
       data: {
         amount: Number(amount),
-        price: Number(price),
+        price: Number(finalPrice),
         stockId: stockId,
         productId: productId,
       },

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -11,89 +11,100 @@ import {
   FaClipboardList,
   FaCogs,
   FaHome,
-  FaList,
   FaMoneyBillWave,
   FaShoppingCart,
   FaSignOutAlt,
   FaUser,
 } from "react-icons/fa";
+import { IoBusiness, IoFastFoodSharp } from "react-icons/io5";
+import { SiGoogleanalytics } from "react-icons/si";
+import { RiExchangeDollarLine } from "react-icons/ri";
+import { GiExpense, GiRawEgg } from "react-icons/gi";
+import { MdHistory } from "react-icons/md";
 import { $Enums } from "@prisma/client";
 
 const iconClassName = "text-neutral-700 h-5 w-5 flex-shrink-0";
 
 const links: LinkProps[] = [
   {
+    label: "Dashboard",
+    icon: <FaHome className={iconClassName} />,
+    items: [
+      {
+        label: "Overview",
+        href: "/overview",
+        icon: <SiGoogleanalytics className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+    ],
+  },
+  {
     label: "Master Data",
     icon: <FaBox className={iconClassName} />, // Add icon for this section
     items: [
       {
-        label: "Dashboard",
-        href: "/dashboard",
-        icon: <FaHome className={iconClassName} />,
-        roles: ["OWNER"],
-      },
-      {
         label: "Business",
         href: "/business",
-        icon: <FaBox className={iconClassName} />,
+        icon: <IoBusiness className={iconClassName} />,
         roles: ["OWNER"],
       },
       {
-        label: "Product Category",
-        href: "/product-category",
-        icon: <FaBox className={iconClassName} />,
+        label: "Product Menu",
+        href: "/product",
+        icon: <IoFastFoodSharp className={iconClassName} />,
         roles: ["OWNER"],
       },
-      {
-        label: "Products",
-        href: "/products",
-        icon: <FaBox className={iconClassName} />,
-        roles: ["OWNER"],
-      },
-      {
-        label: "Orders",
-        href: "/orders",
-        icon: <FaShoppingCart className={iconClassName} />,
-        roles: ["OWNER", "CASHIER"],
-      },
+
       {
         label: "Stock",
         href: "/stock",
-        icon: <FaCogs className={iconClassName} />,
-        roles: ["OWNER", "MANAGER_OPERATIONAL"],
-      },
-      {
-        label: "Outcome Categories",
-        href: "/outcome-categories",
-        icon: <FaList className={iconClassName} />,
+        icon: <GiRawEgg className={iconClassName} />,
         roles: ["OWNER", "MANAGER_OPERATIONAL"],
       },
     ],
   },
   {
-    label: "Transaksi",
+    label: "Transasction",
     icon: <FaMoneyBillWave className={iconClassName} />, // Add icon for this section
     items: [
       {
         label: "Transactions",
         href: "/transactions",
-        icon: <FaMoneyBillWave className={iconClassName} />,
+        icon: <RiExchangeDollarLine className={iconClassName} />,
         roles: ["OWNER"],
+      },
+      {
+        label: "Outcome",
+        href: "/outcomes",
+        icon: <GiExpense className={iconClassName} />,
+        roles: ["OWNER", "MANAGER_OPERATIONAL"],
+      },
+      {
+        label: "Orders",
+        href: "/orders",
+        icon: <MdHistory className={iconClassName} />,
+        roles: ["OWNER", "CASHIER"],
+      },
+      {
+        label: "Cashier",
+        href: "/cashier",
+        icon: <FaShoppingCart className={iconClassName} />,
+        roles: ["OWNER", "CASHIER"],
       },
     ],
   },
   {
-    label: "Pengaturan",
+    label: "Settings",
     icon: <FaCogs className={iconClassName} />, // Add icon for this section
     items: [
       {
-        label: "Akun & Pengguna",
+        label: "Account",
         href: "/users",
         icon: <FaUser className={iconClassName} />,
         roles: ["OWNER", "CASHIER", "MANAGER_OPERATIONAL"],
       },
       {
-        label: "Log Aktivitas",
+        label: "Activity Log",
         href: "/logs",
         icon: <FaClipboardList className={iconClassName} />,
         roles: ["OWNER"],
@@ -110,7 +121,19 @@ const links: LinkProps[] = [
 
 export function SidebarApp({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState<boolean>(false);
-  const { decoded } = useAuth();
+  const { decoded, fetchAuth } = useAuth();
+
+  useEffect(() => {
+    if (
+      links.filter((item) =>
+        item.items.some((link) =>
+          link.roles.includes(decoded?.role || ("" as $Enums.Role))
+        )
+      ).length === 0
+    ) {
+      fetchAuth();
+    }
+  }, [decoded?.role]);
 
   return (
     <div className="rounded-md flex flex-col md:flex-row bg-gray-100 w-full flex-1 mx-auto border border-neutral-200 overflow-hidden h-screen">

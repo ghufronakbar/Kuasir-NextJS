@@ -33,12 +33,12 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded, body } = req;
-    const { name, parentBusinessId } = body;
+    const { name, parentBusiness } = body;
     if (
       !name ||
       typeof name !== "string" ||
-      !parentBusinessId ||
-      typeof parentBusinessId !== "string"
+      !parentBusiness ||
+      typeof parentBusiness !== "string"
     )
       return res.status(400).json({ message: "All fields are required" });
     const checkName = await db.business.findFirst({
@@ -63,20 +63,37 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
     if (checkName)
       return res.status(400).json({ message: "Business name already exist" });
 
-    const checkParentBusiness = await db.business.findUnique({
+    const checkParentBusiness = await db.parentBusiness.findFirst({
       where: {
-        id: parentBusinessId,
+        name: parentBusiness,
       },
     });
 
+    let parentBusinessId = checkParentBusiness?.id;
+
     if (!checkParentBusiness) {
-      return res.status(400).json({ message: "Parent business not found" });
+      const pb = await db.parentBusiness.create({
+        data: {
+          name: parentBusiness,
+        },
+      });
+      parentBusinessId = pb.id;
+    } else if (checkParentBusiness.isDeleted) {
+      const pb = await db.parentBusiness.update({
+        where: {
+          id: checkParentBusiness.id,
+        },
+        data: {
+          isDeleted: false,
+        },
+      });
+      parentBusinessId = pb.id;
     }
 
     const business = await db.business.create({
       data: {
         name,
-        parentBusinessId,
+        parentBusinessId: parentBusinessId || "",
       },
     });
 

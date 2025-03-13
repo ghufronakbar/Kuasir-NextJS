@@ -65,7 +65,7 @@ model Product {
   image       String?
 
   productCategoryId String
-  productCategory   ProductCategory @relation(fields: [productCategoryId], references: [id])
+  productCategory   ProductCategory @relation(fields: [productCategoryId], references: [id], onDelete: Cascade)
   recipes           Recipe[]
   orderItems        OrderItem[]
 
@@ -81,9 +81,9 @@ model Recipe {
   price  Float
 
   productId String
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   stockId   String
-  stock     Stock   @relation(fields: [stockId], references: [id])
+  stock     Stock   @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
   isDeleted Boolean @default(false)
 
@@ -98,7 +98,7 @@ model Order {
   total    Float         @default(0)
 
   businessId String
-  business   Business    @relation(fields: [businessId], references: [id])
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
 
   isDeleted Boolean @default(false)
@@ -127,9 +127,9 @@ model OrderItem {
   description String? @db.Text()
 
   orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   isDeleted Boolean @default(false)
 
@@ -154,19 +154,8 @@ model Business {
   name String // "Haykatuju Raso" | "Dendeng Majapahit"
 
   orders           Order[]
-  parentBusiness   ParentBusiness @relation(fields: [parentBusinessId], references: [id])
+  parentBusiness   ParentBusiness @relation(fields: [parentBusinessId], references: [id], onDelete: Cascade)
   parentBusinessId String
-
-  isDeleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-model OutcomeCategory {
-  id       String    @id @default(uuid())
-  name     String // nanti ini diisi "dendeng" / "nasgor" jadi untuk memudahkan beli buat apa
-  outcomes Outcome[]
 
   isDeleted Boolean @default(false)
 
@@ -179,12 +168,11 @@ model Outcome {
   amount      Float
   price       Float // per satuan
   method      PaymentMethod
+  category    String // nasgor / dendeng dsb
   description String?       @db.Text()
 
-  stockId           String
-  stock             Stock           @relation(fields: [stockId], references: [id])
-  outcomeCategoryId String
-  outcomeCategory   OutcomeCategory @relation(fields: [outcomeCategoryId], references: [id])
+  stockId String
+  stock   Stock  @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
   isDeleted Boolean @default(false)
 
@@ -220,7 +208,7 @@ model LogActivity {
   detail         Json    @default("{}")
 
   userId String
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   isDeleted Boolean @default(false)
 

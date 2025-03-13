@@ -44,9 +44,12 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
           mode: "insensitive",
         },
       },
+      select: {
+        isDeleted: true,
+      },
     });
 
-    if (checkName) {
+    if (checkName && !checkName.isDeleted) {
       return res
         .status(400)
         .json({ message: "Product category name already exist" });
