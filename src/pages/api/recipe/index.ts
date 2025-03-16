@@ -36,6 +36,9 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
             amount: true,
             price: true,
           },
+          where: {
+            isDeleted: false,
+          },
         },
       },
     });
@@ -46,8 +49,11 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
       include: {
         recipes: {
-          select: {
-            id: true,
+          include: {
+            stock: true,
+          },
+          where: {
+            isDeleted: false,
           },
         },
       },
@@ -83,6 +89,21 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
       include: {
         product: true,
+      },
+    });
+
+    let cogs = 0;
+
+    for (const r of checkProduct.recipes) {
+      cogs += r.stock.averagePrice * r.amount;
+    }
+
+    await db.product.update({
+      where: {
+        id: recipe.productId,
+      },
+      data: {
+        cogs: cogs,
       },
     });
 

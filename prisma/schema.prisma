@@ -30,11 +30,12 @@ enum Role {
 }
 
 model Stock {
-  id       String  @id @default(uuid())
-  name     String
-  quantity Float   @default(0)
-  unit     String
-  image    String?
+  id           String  @id @default(uuid())
+  name         String
+  quantity     Float   @default(0)
+  unit         String
+  image        String?
+  averagePrice Float   @default(0)
 
   recipes  Recipe[]
   outcomes Outcome[]
@@ -63,6 +64,7 @@ model Product {
   price       Float
   description String? @db.Text()
   image       String?
+  cogs        Float   @default(0)
 
   productCategoryId String
   productCategory   ProductCategory @relation(fields: [productCategoryId], references: [id], onDelete: Cascade)

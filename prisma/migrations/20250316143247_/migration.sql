@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Stock" ADD COLUMN     "averagePrice" DOUBLE PRECISION NOT NULL DEFAULT 0;

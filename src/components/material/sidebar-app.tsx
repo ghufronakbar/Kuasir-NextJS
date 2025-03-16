@@ -105,7 +105,7 @@ const links: LinkProps[] = [
       },
       {
         label: "Activity Log",
-        href: "/logs",
+        href: "/activity",
         icon: <FaClipboardList className={iconClassName} />,
         roles: ["OWNER"],
       },

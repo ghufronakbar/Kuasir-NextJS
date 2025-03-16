@@ -32,7 +32,6 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       !stockId ||
       !category
     ) {
-      console.log({ amount, price, method, stockId, category });
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -59,14 +58,43 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         category,
         description,
       },
+      include: {
+        stock: {
+          include: {
+            recipes: true,
+          },
+        },
+      },
     });
+
+    const stock = await db.stock.update({
+      where: {
+        id: stockId,
+      },
+      data: {
+        quantity: checkStock.quantity + Number(amount),
+      },
+      include: {
+        outcomes: true,
+      },
+    });
+
+    let totalPrice = 0;
+    let totalAmount = 0;
+
+    for (const outcome of stock.outcomes) {
+      totalPrice += outcome.price;
+      totalAmount += outcome.amount;
+    }
+
+    const averagePrice = totalPrice / totalAmount || 0;
 
     await db.stock.update({
       where: {
         id: stockId,
       },
       data: {
-        quantity: checkStock.quantity + Number(amount),
+        averagePrice,
       },
     });
 

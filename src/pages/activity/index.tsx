@@ -3,13 +3,45 @@ import { api } from "@/config/api";
 import formatDate from "@/helper/formatDate";
 import { AuthPage } from "@/middleware/auth-page";
 import { Api } from "@/models/response";
-import { useEffect, useState } from "react";
+import { JSX, useEffect, useState } from "react";
 import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { DetailLogActivity } from "@/models/schema";
 import { convertToReadableString } from "@/helper/formatString";
 
 const THEAD = ["No", "Data", "User", "Action", "Description", "Time", ""];
+
+interface JSONValue {
+  [key: string]: unknown;
+}
+
+const renderJson = (data: JSONValue): JSX.Element[] => {
+  return Object.entries(data).map(([key, value]) => {    
+    if (typeof value === "object" && value !== null) {
+      return (
+        <div key={key}>
+          <strong>{convertToReadableString(key)}:</strong>
+          <div style={{ marginLeft: "20px" }}>
+            {Array.isArray(value)
+              ? value.map((item, index) => (
+                  <div key={index}>{renderJson(item)}</div>
+                ))
+              : renderJson(value as JSONValue)}
+          </div>
+        </div>
+      );
+    }    
+    return (
+      <div key={key}>
+        <strong>{convertToReadableString(key)}:</strong> {JSON.stringify(value)}
+      </div>
+    );
+  });
+};
+
+const JsonViewer = ({ data }: { data: JSONValue }) => {
+  return <div>{renderJson(data)}</div>;
+};
 
 const LogActivityScreen = () => {
   const { data, Loading, open, setOpen, onClickDetail, onClose, selected } =
@@ -28,7 +60,7 @@ const LogActivityScreen = () => {
           onExitComplete={onClose}
         >
           <Dialog.Trigger asChild>
-            <Button className="bg-teal-500 px-2 text-white">
+            <Button className="bg-teal-500 px-2 text-white hidden">
               <MdCreate /> Create New
             </Button>
           </Dialog.Trigger>
@@ -47,42 +79,9 @@ const LogActivityScreen = () => {
                 <Dialog.Body>
                   <div className="flex flex-col gap-2">
                     <h4 className="font-semibold text-lg">Detail</h4>
-                    {selected?.detail &&
-                      Object.entries(
-                        selected.detail as Record<string, unknown>
-                      ).flatMap(([key, value], index) => (
-                        <div key={index}>
-                          <span className="font-semibold">
-                            {convertToReadableString(key)}{" "}
-                          </span>
-                          <span>
-                            {typeof value === "object"
-                              ? JSON.stringify(value)
-                              : value?.toString()}
-                          </span>
-                        </div>
-                      ))}
-                    {selected?.before && (
-                      <div className="h-[1px] w-full bg-gray-200 my-4" />
+                    {selected?.detail && (
+                      <JsonViewer data={selected.detail as JSONValue} />
                     )}
-                    {selected?.before && (
-                      <h4 className="font-semibold text-lg">Before</h4>
-                    )}
-                    {selected?.before &&
-                      Object.entries(
-                        selected.before as Record<string, unknown>
-                      ).flatMap(([key, value], index) => (
-                        <div key={index}>
-                          <span className="font-semibold">
-                            {convertToReadableString(key)}{" "}
-                          </span>
-                          <span>
-                            {typeof value === "object"
-                              ? JSON.stringify(value)
-                              : value?.toString()}
-                          </span>
-                        </div>
-                      ))}
                   </div>
                 </Dialog.Body>
               </Dialog.Content>

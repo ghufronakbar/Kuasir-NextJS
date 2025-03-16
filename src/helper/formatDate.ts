@@ -36,7 +36,7 @@ export const formatDate = (
     return `${date.getDate()} ${monthName}, ${year} ${date.getHours()}:${date.getMinutes()}`;
   }
   if (isFullDate) {
-    return `${date.getDate()} ${monthName}, ${year}`;
+    return `${("0" + date.getDate()).slice(-2)} ${monthName}, ${year}`;
   } else {
     return `${monthName} ${year}`;
   }

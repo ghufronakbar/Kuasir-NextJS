@@ -13,6 +13,7 @@ import Image from "next/image";
 import formatRupiah from "@/helper/formatRupiah";
 import Link from "next/link";
 import { PLACEHOLDER } from "@/constants/image";
+import { UploadImage } from "@/components/material/upload-image";
 
 const THEAD = ["No", "", "Name", "Price", "Product Category", "Created At", ""];
 
@@ -32,6 +33,7 @@ const ProductPage = () => {
     isOther,
     mutate,
     confirmDelete,
+    onChangeImage,
   } = useProducts();
   return (
     <DashboardLayout
@@ -71,6 +73,11 @@ const ProductPage = () => {
                       mutate();
                     }}
                   >
+                    <Label className="mt-2 font-medium">Image</Label>
+                    <UploadImage
+                      onChangeImage={onChangeImage}
+                      image={form.image}
+                    />
                     <Label className="mt-2 font-medium">Name</Label>
                     <input
                       value={form.name}
@@ -205,6 +212,7 @@ interface ProductDTO {
   name: string;
   productCategory: string;
   price: number;
+  image: string | null;
 }
 
 const initProductDTO: ProductDTO = {
@@ -212,6 +220,7 @@ const initProductDTO: ProductDTO = {
   name: "",
   productCategory: "Paket",
   price: 0,
+  image: null,
 };
 
 const useProducts = () => {
@@ -330,6 +339,10 @@ const useProducts = () => {
     }
   };
 
+  const onChangeImage = (image: string | null) => {
+    setForm({ ...form, image });
+  };
+
   const isOther = form.productCategory === "Other";
 
   return {
@@ -347,5 +360,6 @@ const useProducts = () => {
     isOther,
     mutate,
     confirmDelete,
+    onChangeImage,
   };
 };

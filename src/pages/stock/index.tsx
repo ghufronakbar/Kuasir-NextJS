@@ -12,6 +12,7 @@ import Image from "next/image";
 import { DetailStock } from "@/models/schema";
 import { LoadingData } from "@/components/material/loading-data";
 import { PLACEHOLDER } from "@/constants/image";
+import { UploadImage } from "@/components/material/upload-image";
 
 const THEAD = ["No", "", "Name", "Current Stock", "Created At", ""];
 
@@ -27,6 +28,7 @@ const StockPage = () => {
     onClickDetail,
     onClose,
     mutate,
+    onChangeImage,
   } = useStock();
   return (
     <DashboardLayout
@@ -66,6 +68,11 @@ const StockPage = () => {
                       mutate();
                     }}
                   >
+                    <Label className="mt-2 font-medium">Image</Label>
+                    <UploadImage
+                      onChangeImage={onChangeImage}
+                      image={form.image}
+                    />
                     <Label className="mt-2 font-medium">Name</Label>
                     <input
                       value={form.name}
@@ -170,12 +177,14 @@ interface StockDTO {
   id: string;
   name: string;
   unit: string;
+  image: string | null;
 }
 
 const initStockDTO: StockDTO = {
   id: "-",
   name: "",
   unit: "",
+  image: null,
 };
 
 const useStock = () => {
@@ -200,7 +209,12 @@ const useStock = () => {
   };
 
   const onClickDetail = (item: DetailStock) => {
-    setForm({ id: item.id, name: item.name, unit: item.unit });
+    setForm({
+      id: item.id,
+      name: item.name,
+      unit: item.unit,
+      image: item.image,
+    });
     setOpen(true);
   };
 
@@ -260,6 +274,10 @@ const useStock = () => {
     }
   };
 
+  const onChangeImage = (image: string | null) => {
+    setForm({ ...form, image });
+  };
+
   const Loading = () => <LoadingData loading={loading} />;
 
   return {
@@ -273,5 +291,6 @@ const useStock = () => {
     onClickDetail,
     onClose,
     mutate,
+    onChangeImage,
   };
 };

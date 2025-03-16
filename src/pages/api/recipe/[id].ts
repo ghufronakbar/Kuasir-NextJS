@@ -54,6 +54,16 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       where: {
         id: productId,
       },
+      include: {
+        recipes: {
+          include: {
+            stock: true,
+          },
+          where: {
+            isDeleted: false,
+          },
+        },
+      },
     });
 
     if (!checkId) return res.status(400).json({ message: "Recipe not found" });
@@ -81,10 +91,36 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         productId: checkProduct.id,
       },
       include: {
-        product: true,
+        product: {
+          include: {
+            recipes: {
+              select: {
+                price: true,
+              },
+              where: {
+                isDeleted: false,
+              },
+            },
+          },
+        },
       },
       where: {
         id,
+      },
+    });
+
+    let cogs = 0;
+
+    for (const r of checkProduct.recipes) {
+      cogs += r.stock.averagePrice * r.amount;
+    }
+
+    await db.product.update({
+      where: {
+        id: recipe.productId,
+      },
+      data: {
+        cogs: cogs,
       },
     });
 

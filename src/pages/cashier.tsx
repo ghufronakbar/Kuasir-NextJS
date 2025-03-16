@@ -1,3 +1,4 @@
+import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { LoadingData } from "@/components/material/loading-data";
 import { api } from "@/config/api";
@@ -10,11 +11,11 @@ import {
   DetailProduct,
   DetailProductCategory,
 } from "@/models/schema";
-import { cn } from "@/utils/cn";
 import { $Enums } from "@prisma/client";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { MdShoppingCartCheckout } from "react-icons/md";
+import { MdShoppingCart } from "react-icons/md";
+import { Label } from "@/components/ui/label";
 
 const CashierPage = () => {
   const {
@@ -27,16 +28,106 @@ const CashierPage = () => {
     increment,
     decrement,
     onChange,
-    orderDTO,
+    form: form,
     MERCHANTS,
     PAYMENT_METHODS,
     businesses,
     total,
-    CheckoutButton,
     onChangeDescription,
+    open,
+    setOpen,
+    handleCheckout,
+    isDisable,
   } = useCashier();
   return (
-    <DashboardLayout title="Make Order">
+    <DashboardLayout
+      title="Make Order"
+      childrenHeader={
+        <Dialog.Root
+          size="sm"
+          placement="center"
+          motionPreset="slide-in-bottom"
+          lazyMount
+          open={open}
+          onOpenChange={(e) => setOpen(e.open)}
+          onExitComplete={() => setOpen(false)}
+        >
+          <Dialog.Trigger asChild>
+            <Button className="bg-teal-500 px-2 text-white">
+              <MdShoppingCart /> Make Order
+            </Button>
+          </Dialog.Trigger>
+          <Portal>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Content>
+                <Dialog.Header>
+                  <Dialog.Title className="font-semibold">
+                    Detail Order
+                  </Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <CloseButton size="sm" />
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+                <Dialog.Body>
+                  <form
+                    className="flex flex-col gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleCheckout();
+                    }}
+                  >
+                    <Label className="mt-2 font-medium">Business</Label>
+                    <select
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                      value={form.businessId}
+                      onChange={(e) => onChange(e, "businessId")}
+                    >
+                      {businesses.map((item, index) => (
+                        <option key={index} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Label className="mt-2 font-medium">Merchant</Label>
+                    <select
+                      className="w-full p-2 border border-gray-200 rounded-lg shadow"
+                      value={form.merchant}
+                      onChange={(e) => onChange(e, "merchant")}
+                    >
+                      {MERCHANTS.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                    <Label className="mt-2 font-medium">Method</Label>
+                    <select
+                      className="w-full p-2 border border-gray-200 rounded-lg shadow"
+                      value={form.method}
+                      onChange={(e) => onChange(e, "method")}
+                    >
+                      {PAYMENT_METHODS.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="submit"
+                      className="bg-teal-500 font-semibold text-white mt-4"
+                      disabled={isDisable}
+                    >
+                      Create
+                    </Button>
+                  </form>
+                </Dialog.Body>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
+      }
+    >
       <div className="w-full flex flex-row gap-4">
         <div className="w-2/3 border border-gray-200 rounded-lg p-4 bg-white flex flex-col gap-4">
           <h2 className="text-3xl font-bold">Select Menu</h2>
@@ -82,51 +173,6 @@ const CashierPage = () => {
           </div>
         </div>
         <div className="w-1/3 border border-gray-200 rounded-lg p-4 bg-white flex flex-col gap-8 h-fit sticky top-0">
-          <div className="border border-gray-200 rounded-lg p-4 gap-4 flex flex-col">
-            <h2 className="text-3xl font-bold">Detail Order</h2>
-            <div className="flex flex-col gap-2 w-full">
-              <label className="font-semibold">Business</label>
-              <select
-                className="w-full p-2 border border-gray-200 rounded-lg shadow"
-                value={orderDTO.businessId}
-                onChange={(e) => onChange(e, "businessId")}
-              >
-                {businesses.map((item, index) => (
-                  <option key={index} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-2 w-full">
-              <label className="font-semibold">Merchant</label>
-              <select
-                className="w-full p-2 border border-gray-200 rounded-lg shadow"
-                value={orderDTO.merchant}
-                onChange={(e) => onChange(e, "merchant")}
-              >
-                {MERCHANTS.map((item, index) => (
-                  <option key={index} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-2 w-full">
-              <label className="font-semibold">Method</label>
-              <select
-                className="w-full p-2 border border-gray-200 rounded-lg shadow"
-                value={orderDTO.method}
-                onChange={(e) => onChange(e, "method")}
-              >
-                {PAYMENT_METHODS.map((item, index) => (
-                  <option key={index} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
           <div className="border border-gray-200 rounded-lg p-4 flex flex-col gap-8">
             <h2 className="text-3xl font-bold">Cart</h2>
             <div className="flex flex-col gap-4 w-full">
@@ -186,7 +232,6 @@ const CashierPage = () => {
           </div>
         </div>
       </div>
-      <CheckoutButton />
       <Loading />
     </DashboardLayout>
   );
@@ -212,11 +257,12 @@ interface CartItem extends DetailProduct {
 const useCashier = () => {
   const [data, setData] = useState<DetailProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [orderDTO, setOrderDTO] = useState<OrderDTO>(initOrderDTO);
+  const [form, setOrderDTO] = useState<OrderDTO>(initOrderDTO);
   const [selectedProducts, setSelectedProducts] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
   const [businesses, setBusinesses] = useState<DetailBusiness[]>([]);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const onChangeDescription = (
     e: React.ChangeEvent<HTMLTextAreaElement>,
@@ -229,7 +275,7 @@ const useCashier = () => {
 
   const resetState = () => {
     setSelectedProducts([]);
-
+    setOpen(false);
     setOrderDTO({ ...initOrderDTO, businessId: businesses?.[0]?.id || "" });
   };
 
@@ -257,8 +303,8 @@ const useCashier = () => {
       setSelectedProducts([...selectedProducts]);
     } else {
       setSelectedProducts((prev) => [
-        ...prev,
         { ...product, amount: 1, description: "" },
+        ...prev,
       ]);
     }
   };
@@ -285,14 +331,14 @@ const useCashier = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     key: keyof OrderDTO
   ) => {
-    setOrderDTO({ ...orderDTO, [key]: e.target.value });
+    setOrderDTO({ ...form, [key]: e.target.value });
   };
 
   const fetchBusinesses = async () => {
     const response = await api.get<Api<DetailBusiness[]>>("/business");
     setBusinesses(response.data.data);
     if (response.data.data.length > 0) {
-      setOrderDTO({ ...orderDTO, businessId: response.data.data[0].id });
+      setOrderDTO({ ...form, businessId: response.data.data[0].id });
     }
   };
 
@@ -325,7 +371,7 @@ const useCashier = () => {
     fetchData();
     fetchBusinesses();
     setOrderDTO({
-      ...orderDTO,
+      ...form,
       merchant: $Enums.Merchant.GrabFood,
       method: $Enums.PaymentMethod.QRIS,
     });
@@ -337,7 +383,7 @@ const useCashier = () => {
   const PAYMENT_METHODS = Object.values($Enums.PaymentMethod);
 
   const dataCheckout = {
-    ...orderDTO,
+    ...form,
     orderItems: selectedProducts.map((item) => ({
       ...item,
       productId: item.id,
@@ -346,8 +392,7 @@ const useCashier = () => {
 
   const handleCheckout = async () => {
     try {
-      if (loadingCheckout) return;
-      if (selectedProducts.length === 0 || loading) return;
+      if (isDisable) return;
       setLoadingCheckout(true);
       makeToast("info");
       const response = await api.post("/order", dataCheckout);
@@ -361,27 +406,19 @@ const useCashier = () => {
     }
   };
 
-  const CheckoutButton = () => {
-    return (
-      <button
-        className={cn(
-          "rounded-full h-fit w-fit p-4 bg-blue-500 bottom-10 right-10 fixed z-50 cursor-pointer",
-          loading || selectedProducts.length === 0
-            ? "bg-gray-400 cursor-wait"
-            : ""
-        )}
-        onClick={handleCheckout}
-      >
-        <MdShoppingCartCheckout className="text-white w-12 h-12" />
-      </button>
-    );
-  };
+  const isDisable =
+    loading ||
+    loadingCheckout ||
+    selectedProducts.length === 0 ||
+    !form.businessId ||
+    !form.method ||
+    !form.merchant;
 
   return {
     data: filteredData,
     Loading,
     onChange,
-    orderDTO,
+    form,
     onClickProduct,
     onSearch,
     search,
@@ -391,9 +428,12 @@ const useCashier = () => {
     MERCHANTS,
     PAYMENT_METHODS,
     businesses,
-    CheckoutButton,
     total,
     onChangeDescription,
+    open,
+    setOpen,
+    handleCheckout,
+    isDisable,
   };
 };
 

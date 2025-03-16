@@ -50,6 +50,9 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       where: {
         id: stockId,
       },
+      include: {
+        outcomes: true,
+      },
     });
 
     if (!checkId) {
@@ -70,6 +73,32 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
       where: {
         id,
+      },
+    });
+
+    const gapQuantity = checkId.amount - Number(amount);
+    const newQuantity = checkStock.quantity - gapQuantity;
+
+    let totalPrice = 0;
+    let totalAmount = 0;
+
+    for (const outcome of checkStock.outcomes) {
+      totalPrice += outcome.price;
+      totalAmount += outcome.amount;
+    }
+
+    const averagePrice = totalPrice / totalAmount || 0;
+
+    await db.stock.update({
+      where: {
+        id: stockId,
+      },
+      data: {
+        quantity: newQuantity,
+        averagePrice,
+      },
+      include: {
+        outcomes: true,
       },
     });
 

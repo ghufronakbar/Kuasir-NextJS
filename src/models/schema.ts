@@ -28,7 +28,8 @@ export interface DetailParentBusiness extends ParentBusiness {
 export interface DetailProduct extends Product {
   productCategory: DetailProductCategory;
   recipes: DetailRecipe[];
-  _count: { recipes: number };
+  orderItems: DetailOrderItem[];
+  _count: { recipes: number; orderItems: number };
 }
 
 export interface DetailProductCategory extends ProductCategory {
