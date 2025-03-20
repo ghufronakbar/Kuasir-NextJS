@@ -4,6 +4,7 @@ import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
+  const businessId = (req.query.businessId as string) || "";
   const outcomes = await db.outcome.findMany({
     orderBy: {
       createdAt: "desc",
@@ -12,9 +13,9 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
       stock: true,
     },
     where: {
-      isDeleted: false,
+      AND: [{ businessId }, { isDeleted: false }],
     },
-  });
+  });  
 
   return res.status(200).json({ message: "OK", data: outcomes });
 };
@@ -22,7 +23,15 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded, body } = req;
-    const { amount, price, method, stockId, category, description } = body;
+    const {
+      amount,
+      price,
+      method,
+      stockId,
+      category,
+      description,
+      businessId,
+    } = body;
     if (
       !amount ||
       isNaN(Number(amount)) ||
@@ -30,7 +39,8 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       isNaN(Number(price)) ||
       !method ||
       !stockId ||
-      !category
+      !category ||
+      !businessId
     ) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -49,6 +59,15 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(400).json({ message: "Stock not found" });
     }
 
+    const checkBusiness = await db.business.findUnique({
+      where: {
+        id: businessId,
+      },
+    });
+    if (!checkBusiness) {
+      return res.status(400).json({ message: "Business not found" });
+    }
+
     const outcome = await db.outcome.create({
       data: {
         amount: Number(amount),
@@ -57,6 +76,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         stockId: stockId,
         category,
         description,
+        businessId,
       },
       include: {
         stock: {

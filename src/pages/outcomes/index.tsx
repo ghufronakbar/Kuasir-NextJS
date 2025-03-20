@@ -13,10 +13,16 @@ import { $Enums } from "@prisma/client";
 import Image from "next/image";
 import { PLACEHOLDER } from "@/constants/image";
 import formatRupiah from "@/helper/formatRupiah";
+import { useBusiness } from "@/hooks/useBusiness";
 
 const THEAD = ["No", "", "Name", "Amount", "Price", "Method", "Created At", ""];
 
 const OutcomesPage = () => {
+  const {
+    data: business,
+    selectedBusiness,
+    onChange: onChangeB,
+  } = useBusiness();
   const {
     data,
     Loading,
@@ -34,10 +40,23 @@ const OutcomesPage = () => {
     confirmDelete,
     stocks,
     methods,
-  } = useOutcomes();
+  } = useOutcomes(selectedBusiness);
   return (
     <DashboardLayout
       title="Outcomes"
+      belowHeader={
+        <select
+          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
+          onChange={onChangeB}
+          value={selectedBusiness}
+        >
+          {business.map((item, index) => (
+            <option key={index} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      }
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -102,7 +121,7 @@ const OutcomesPage = () => {
                           {item}
                         </option>
                       ))}
-                    </select>                    
+                    </select>
                     {isOther && (
                       <>
                         <Label className="mt-2 font-medium">
@@ -253,7 +272,7 @@ const initOutcomeDTO: OutcomeDTO = {
   stockId: "",
 };
 
-const useOutcomes = () => {
+const useOutcomes = (businessId: string) => {
   const [data, setData] = useState<DetailOutcome[]>([]);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
@@ -274,7 +293,9 @@ const useOutcomes = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailOutcome[]>>("/outcome");
+    const response = await api.get<Api<DetailOutcome[]>>("/outcome", {
+      params: { businessId },
+    });
     setData(response.data.data);
     const uniqueCategories = Array.from(
       new Set(response.data.data.map((item) => item.category))
@@ -315,8 +336,10 @@ const useOutcomes = () => {
   };
 
   useEffect(() => {
-    fetching();
-  }, []);
+    if (businessId) {
+      fetching();
+    }
+  }, [businessId]);
 
   const mutate = async () => {
     try {
@@ -341,6 +364,7 @@ const useOutcomes = () => {
     try {
       const res = await api.post("/outcome", {
         ...form,
+        businessId,
         category: isOther ? other : form.category,
       });
       await fetching();
@@ -354,6 +378,7 @@ const useOutcomes = () => {
     try {
       const res = await api.put(`/outcome/${form.id}`, {
         ...form,
+        businessId,
         category: isOther ? other : form.category,
       });
       await fetching();

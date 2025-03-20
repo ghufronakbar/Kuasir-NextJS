@@ -61,6 +61,12 @@ const links: LinkProps[] = [
         icon: <GiRawEgg className={iconClassName} />,
         roles: ["OWNER", "MANAGER_OPERATIONAL"],
       },
+      {
+        label: "User",
+        href: "/user",
+        icon: <FaUser className={iconClassName} />,
+        roles: ["OWNER"],
+      },
     ],
   },
   {
@@ -69,7 +75,7 @@ const links: LinkProps[] = [
     items: [
       {
         label: "Transactions",
-        href: "/transactions",
+        href: "/transaction",
         icon: <RiExchangeDollarLine className={iconClassName} />,
         roles: ["OWNER"],
       },
@@ -99,7 +105,7 @@ const links: LinkProps[] = [
     items: [
       {
         label: "Account",
-        href: "/users",
+        href: "/profile",
         icon: <FaUser className={iconClassName} />,
         roles: ["OWNER", "CASHIER", "MANAGER_OPERATIONAL"],
       },
@@ -180,7 +186,7 @@ export function SidebarApp({ children }: { children: React.ReactNode }) {
                 href: "/profile",
                 icon: (
                   <Image
-                    src={DEFAULT_PROFILE}
+                    src={decoded?.image || DEFAULT_PROFILE}
                     className="h-7 w-7 flex-shrink-0 rounded-full"
                     width={50}
                     height={50}

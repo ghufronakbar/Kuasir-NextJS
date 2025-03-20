@@ -6,6 +6,17 @@ import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
+  const decoded = req.decoded;
+
+  const user = await db.user.findUnique({
+    where: {
+      id: decoded?.id,
+    },
+    select: {
+      role: true,
+    },
+  });
+
   const orders = (await db.order.findMany({
     orderBy: {
       createdAt: "desc",
@@ -22,7 +33,18 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
       business: true,
     },
     where: {
-      isDeleted: false,
+      AND: [
+        {
+          isDeleted: false,
+        },
+        user?.role !== "OWNER"
+          ? {
+              createdAt: {
+                gte: new Date(new Date().setDate(new Date().getDate() - 7)),
+              },
+            }
+          : {},
+      ],
     },
   })) as DetailOrder[];
 
@@ -117,7 +139,6 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         checkProductId.find((product) => product.id === item.productId)
           ?.price || 0 * item.amount;
 
-      console.log("item.price ", item.price);
       total += item.price;
     }
 

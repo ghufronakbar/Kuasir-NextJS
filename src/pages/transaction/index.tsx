@@ -3,36 +3,54 @@ import { api } from "@/config/api";
 import formatDate from "@/helper/formatDate";
 import { AuthPage } from "@/middleware/auth-page";
 import { Api } from "@/models/response";
-import { DetailBusiness, DetailParentBusiness } from "@/models/schema";
 import { useEffect, useState } from "react";
 import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
-import { CachedBusiness } from "@/hooks/useBusiness";
+import { $Enums } from "@prisma/client";
+import { DetailTransaction } from "@/models/schema";
+import { useBusiness } from "@/hooks/useBusiness";
+import formatRupiah from "@/helper/formatRupiah";
 
-const THEAD = ["No", "Name", "Parent Business", "Created At", ""];
+const THEAD = ["No", "Title", "Amount", "Category", "Type", "Created At", ""];
 
-const BusinessPage = () => {
+const TransactionPage = () => {
+  const {
+    data: business,
+    selectedBusiness,
+    onChange: onChangeB,
+  } = useBusiness();
   const {
     data,
     Loading,
     form,
     onChange,
-    parents,
-    other,
-    setOther,
     open,
     setOpen,
     onClickDetail,
     onClose,
-    isOther,
     mutate,
     confirmDelete,
-  } = useBusiness();
+    TRANSACTION_TYPES,
+    TRANSACTION_CATEGORIES,
+  } = useTransactions(selectedBusiness);
   return (
     <DashboardLayout
-      title="Business"
+      title="Transactions"
+      belowHeader={
+        <select
+          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
+          onChange={onChangeB}
+          value={selectedBusiness}
+        >
+          {business.map((item, index) => (
+            <option key={index} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      }
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -54,7 +72,9 @@ const BusinessPage = () => {
               <Dialog.Content>
                 <Dialog.Header>
                   <Dialog.Title className="font-semibold">
-                    {form.id === "-" ? "Create Business" : "Edit Business"}
+                    {form.id === "-"
+                      ? "Create Transaction"
+                      : "Edit Transaction"}
                   </Dialog.Title>
                   <Dialog.CloseTrigger asChild>
                     <CloseButton size="sm" />
@@ -70,38 +90,50 @@ const BusinessPage = () => {
                   >
                     <Label className="mt-2 font-medium">Name</Label>
                     <input
-                      value={form.name}
-                      onChange={(e) => onChange(e, "name")}
-                      placeholder="Haykatuju"
+                      value={form.title}
+                      onChange={(e) => onChange(e, "title")}
+                      placeholder="Salary Chef January 2023"
                       type="text"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                     />
-                    <Label className="mt-2 font-medium">Parent Business</Label>
+                    <Label className="mt-2 font-medium">Amount</Label>
+                    <input
+                      value={form.amount}
+                      onChange={(e) => onChange(e, "amount")}
+                      placeholder="200000"
+                      type="number"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
+                    <Label className="mt-2 font-medium">Type</Label>
                     <select
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                      value={form.parentBusiness}
-                      onChange={(e) => onChange(e, "parentBusiness")}
+                      value={form.type}
+                      onChange={(e) => onChange(e, "type")}
                     >
-                      {parents.map((item) => (
+                      {TRANSACTION_TYPES.map((item) => (
                         <option key={item} value={item}>
                           {item}
                         </option>
                       ))}
                     </select>
-                    {isOther && (
-                      <>
-                        <Label className="mt-2 font-medium">
-                          Name Parent Business
-                        </Label>
-                        <input
-                          value={other}
-                          onChange={(e) => setOther(e.target.value)}
-                          placeholder="Haykatuju"
-                          type="text"
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                        />
-                      </>
-                    )}
+                    <Label className="mt-2 font-medium">Category</Label>
+                    <select
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                      value={form.category}
+                      onChange={(e) => onChange(e, "category")}
+                    >
+                      {TRANSACTION_CATEGORIES.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                    <Label className="mt-2 font-medium">Description</Label>
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => onChange(e, "description")}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
                     <Button
                       type="submit"
                       className="bg-teal-500 font-semibold text-white mt-4"
@@ -140,9 +172,11 @@ const BusinessPage = () => {
                   scope="row"
                   className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
                 >
-                  {item.name}
+                  {item.title}
                 </th>
-                <td className="px-6 py-4">{item.parentBusiness.name}</td>
+                <td className="px-6 py-4">{formatRupiah(item.amount)}</td>
+                <td className="px-6 py-4">{item.category}</td>
+                <td className="px-6 py-4">{item.type}</td>
                 <td className="px-6 py-4">
                   {formatDate(item.createdAt, true)}
                 </td>
@@ -172,71 +206,76 @@ const BusinessPage = () => {
   );
 };
 
-export default AuthPage(BusinessPage, ["CASHIER", "OWNER"]);
+export default AuthPage(TransactionPage, ["CASHIER", "OWNER"]);
 
-interface BusinessDTO {
+interface TransactionDTO {
   id: string;
-  name: string;
-  parentBusiness: string;
+  title: string;
+  amount: number;
+  description: string;
+  type: $Enums.TransactionType;
+  category: $Enums.TransactionCategory;
 }
 
-const initBusinessDTO: BusinessDTO = {
+const initTransactionDTO: TransactionDTO = {
   id: "-",
-  name: "",
-  parentBusiness: "",
+  title: "",
+  amount: 0,
+  description: "",
+  type: "Income",
+  category: "Operational_Utilities",
 };
 
-const useBusiness = () => {
-  const [data, setData] = useState<DetailBusiness[]>([]);
+const useTransactions = (businessId: string) => {
+  const [data, setData] = useState<DetailTransaction[]>([]);
   const [loading, setLoading] = useState(false);
-  const [parents, setParents] = useState<string[]>([]);
-  const [form, setForm] = useState<BusinessDTO>(initBusinessDTO);
-  const [other, setOther] = useState("");
+  const [form, setForm] = useState<TransactionDTO>(initTransactionDTO);
   const [open, setOpen] = useState(false);
 
   const onChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    key: keyof BusinessDTO
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+    key: keyof TransactionDTO
   ) => {
     setForm({ ...form, [key]: e.target.value });
   };
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailBusiness[]>>("/business");
+    const response = await api.get<Api<DetailTransaction[]>>("/transaction", {
+      params: { businessId },
+    });
     setData(response.data.data);
-    const cachedBusiness: CachedBusiness = {
-      ttl: Date.now() + 60 * 60 * 1000,
-      data: response.data.data,
-    };
-    localStorage.setItem("business", JSON.stringify(cachedBusiness));
     setLoading(false);
   };
 
-  const fetchParents = async () => {
-    const res = await api.get<Api<DetailParentBusiness[]>>("/parent-business");
-    setParents([...res.data.data.map((item) => item.name), "Other"]);
-    setForm({ ...form, id: res.data.data?.[0]?.id || "-" });
-  };
-
-  const onClickDetail = (item: DetailBusiness) => {
+  const onClickDetail = (item: DetailTransaction) => {
     setOpen(true);
-    setForm({ ...item, parentBusiness: item.parentBusiness.name });
+    setForm({
+      title: item.title,
+      amount: item.amount,
+      category: item.category,
+      id: item.id,
+      type: item.type,
+      description: item.description || "",
+    });
   };
 
   const onClose = () => {
-    setForm(initBusinessDTO);
+    setForm(initTransactionDTO);
     setOpen(false);
   };
 
   const fetching = async () => {
-    await Promise.all([fetchData(), fetchParents()]);
+    await Promise.all([fetchData()]);
   };
 
   useEffect(() => {
-    fetchData();
-    fetchParents();
-  }, []);
+    if (businessId) {
+      fetchData();
+    }
+  }, [businessId]);
 
   const mutate = async () => {
     try {
@@ -247,11 +286,11 @@ const useBusiness = () => {
         await create();
       } else {
         await edit();
-      }
+      }      
     } catch (error) {
       makeToast("error", error);
     } finally {
-      setForm(initBusinessDTO);
+      setForm(initTransactionDTO);
       setLoading(false);
       setOpen(false);
     }
@@ -259,9 +298,9 @@ const useBusiness = () => {
 
   const create = async () => {
     try {
-      const res = await api.post("/business", {
-        name: form.name,
-        parentBusiness: isOther ? other : form.parentBusiness,
+      const res = await api.post("/transaction", {
+        ...form,
+        businessId,
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -272,9 +311,9 @@ const useBusiness = () => {
 
   const edit = async () => {
     try {
-      const res = await api.put(`/business/${form.id}`, {
-        name: form.name,
-        parentBusiness: isOther ? other : form.parentBusiness,
+      const res = await api.put(`/transaction/${form.id}`, {
+        ...form,
+        businessId,
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -292,12 +331,12 @@ const useBusiness = () => {
     );
   };
 
-  const confirmDelete = async (item: DetailBusiness) => {
+  const confirmDelete = async (item: DetailTransaction) => {
     try {
       const isConfirm = confirm("Are you sure you want to delete this data?");
       if (!isConfirm || loading) return;
       setLoading(true);
-      const res = await api.delete(`/business/${item.id}`);
+      const res = await api.delete(`/transaction/${item.id}`);
       await fetchData();
       makeToast("success", res?.data?.message);
       setLoading(false);
@@ -308,22 +347,22 @@ const useBusiness = () => {
     }
   };
 
-  const isOther = form.parentBusiness === "Other";
-
+  const TRANSACTION_TYPES: string[] = Object.values($Enums.TransactionType);
+  const TRANSACTION_CATEGORIES: string[] = Object.values(
+    $Enums.TransactionCategory
+  );
   return {
     data,
     Loading,
-    parents,
     onChange,
     form,
-    other,
-    setOther,
     open,
     setOpen,
     onClickDetail,
     onClose,
-    isOther,
     mutate,
     confirmDelete,
+    TRANSACTION_TYPES,
+    TRANSACTION_CATEGORIES,
   };
 };

@@ -8,7 +8,7 @@ import { NextApiRequest, NextApiResponse } from "next/types";
  Expected Output
  */
 
-interface DataOrder {
+export interface DataOrder {
   current: DetailDataOrder;
   previous: DetailDataOrder;
   gap: DetailDataOrder;
@@ -270,85 +270,26 @@ const getDataOrderMonthly = async (
   return data;
 };
 
+export interface ReportOrderDetail {
+  omzet: number;
+  cogs: number;
+  netProfit: number;
+  order: number;
+  orderItem: number;
+}
+
+export interface ReportOrder {
+  name: string;
+  current: ReportOrderDetail;
+  previous: ReportOrderDetail;
+  gap: ReportOrderDetail;
+}
+
 export interface Overview {
   master: {
-    business: number;
     product: number;
   };
-  order: {
-    daily: {
-      current: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-      };
-      previous: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-      };
-      gap: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-        // percentage
-      };
-    };
-    weekly: {
-      current: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-      };
-      previous: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-      };
-      gap: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-        // percentage
-      };
-    };
-    monthly: {
-      current: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-      };
-      previous: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-      };
-      gap: {
-        omzet: number;
-        cogs: number;
-        netProfit: number;
-        order: number;
-        orderItem: number;
-        // percentage
-      };
-    };
-  };
+  order: ReportOrder[];
   analyticOrder: {
     bestSeller: Product;
     worstSeller: Product;
@@ -445,13 +386,44 @@ const getChartData = async (
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  const totalBusiness = await db.business.count({
-    where: { isDeleted: false },
+  const businessId = (req.query.businessId as string) || "";
+  const checkBusiness = await db.business.findFirst({
+    where: {
+      AND: [
+        {
+          id: businessId,
+        },
+        {
+          isDeleted: false,
+        },
+      ],
+    },
   });
-  const totalProduct = await db.product.count({ where: { isDeleted: false } });
+  if (!checkBusiness) {
+    return res.status(404).json({ message: "Business not found" });
+  }
+  const totalProduct = await db.product.count({
+    where: {
+      AND: [
+        {
+          isDeleted: false,
+        },
+        {
+          businessId,
+        },
+      ],
+    },
+  });
   const bestProduct = await db.product.findMany({
     where: {
-      isDeleted: false,
+      AND: [
+        {
+          isDeleted: false,
+        },
+        {
+          businessId,
+        },
+      ],
     },
     orderBy: {
       orderItems: {
@@ -472,11 +444,23 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const orderItems = await db.orderItem.findMany({
     where: {
-      product: {
-        id: {
-          in: idProducts,
+      AND: [
+        {
+          product: {
+            id: {
+              in: idProducts,
+            },
+          },
         },
-      },
+        {
+          isDeleted: false,
+        },
+        {
+          order: {
+            businessId,
+          },
+        },
+      ],
     },
   });
 
@@ -488,7 +472,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const worstProduct = await db.product.findFirst({
     where: {
-      isDeleted: false,
+      AND: [
+        {
+          isDeleted: false,
+        },
+        {
+          businessId,
+        },
+      ],
     },
     orderBy: {
       orderItems: {
@@ -512,7 +503,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     },
     where: {
-      isDeleted: false,
+      AND: [
+        {
+          businessId,
+        },
+        {
+          isDeleted: false,
+        },
+      ],
     },
   });
 
@@ -525,7 +523,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       createdAt: "desc",
     },
     where: {
-      isDeleted: false,
+      AND: [
+        {
+          businessId,
+        },
+        {
+          isDeleted: false,
+        },
+      ],
     },
   });
 
@@ -545,7 +550,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       createdAt: "desc",
     },
     where: {
-      isDeleted: false,
+      AND: [
+        {
+          businessId,
+        },
+        {
+          isDeleted: false,
+        },
+      ],
     },
   });
 
@@ -581,14 +593,13 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const data: Overview = {
     master: {
-      business: totalBusiness,
       product: totalProduct,
     },
-    order: {
-      daily: dailyData,
-      monthly: monthlyData,
-      weekly: weeklyData,
-    },
+    order: [
+      { ...dailyData, name: "Daily" },
+      { ...monthlyData, name: "Monthly" },
+      { ...weeklyData, name: "Weekly" },
+    ],
     analyticOrder: {
       bestSeller: bestProduct[0],
       worstSeller: worstProduct!,

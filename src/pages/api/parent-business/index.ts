@@ -72,7 +72,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const handler = (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === "GET") {
-    return AuthApi(GET, ["OWNER"])(req, res);
+    return AuthApi(GET, ["OWNER", "CASHIER", "MANAGER_OPERATIONAL"])(req, res);
   }
 
   if (req.method === "POST") {

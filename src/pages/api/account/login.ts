@@ -32,12 +32,13 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const { id, role, name } = user;
+    const { id, role, name, image } = user;
     const data = {
       id,
       role,
       name,
       email,
+      image,
     };
 
     const accessToken = jwt.sign(data, JWT_SECRET, {

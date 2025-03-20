@@ -32,14 +32,16 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
     const { decoded, body } = req;
-    const { name, price, description, image, productCategory } = body;
+    const { name, price, description, image, productCategory, businessId } =
+      body;
     if (
       !name ||
       typeof name !== "string" ||
       !price ||
       isNaN(Number(price)) ||
       !productCategory ||
-      typeof productCategory !== "string"
+      typeof productCategory !== "string" ||
+      !businessId
     )
       return res.status(400).json({ message: "All fields are required" });
 
@@ -69,6 +71,15 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       productCategoryId = pc.id;
     }
 
+    const checkBusiness = await db.business.findUnique({
+      where: {
+        id: businessId,
+      },
+    });
+    if (!checkBusiness) {
+      return res.status(400).json({ message: "Business not found" });
+    }
+
     const checkId = await db.product.findUnique({
       where: {
         id,
@@ -89,6 +100,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         description: description || null,
         image: image || checkId.image,
         productCategoryId,
+        businessId,
       },
     });
 

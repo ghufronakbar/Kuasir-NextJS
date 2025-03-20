@@ -9,6 +9,7 @@ import {
   ProductCategory,
   Recipe,
   Stock,
+  Transaction,
   User,
 } from "@prisma/client";
 
@@ -16,12 +17,20 @@ import {
 
 export interface DetailBusiness extends Business {
   orders: DetailOrder[];
+  products: DetailProduct[];
+  outcomes: DetailOutcome[];
+  transactions: DetailTransaction[];
   parentBusiness: DetailParentBusiness;
-  _count: { orders: number };
+  _count: {
+    orders: number;
+    products: number;
+    outcomes: number;
+    transactions: number;
+  };
 }
 
 export interface DetailParentBusiness extends ParentBusiness {
-  businesses: Business[];
+  businesses: DetailBusiness[];
   _count: { businesses: number };
 }
 
@@ -72,7 +81,19 @@ export interface DetailOutcome extends Outcome {
   stock: DetailStock;
 }
 
+// TRANSACTION FOR ACOUNTANT
+
+export interface DetailTransaction extends Transaction {
+  business: DetailBusiness;
+}
+
 // LOG DATA
 export interface DetailLogActivity extends LogActivity {
-  user: User;
+  user: DetailUser;
+}
+
+// USER
+export interface DetailUser extends User {
+  logActivities: DetailLogActivity[];
+  accessToken: string;
 }

@@ -12,6 +12,7 @@ interface DecodedToken {
   role: $Enums.Role;
   iat: number;
   exp: number;
+  image: string;
 }
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ interface AuthContextType {
   decoded: DecodedToken | null;
   fetchAuth: () => void;
   signOut: () => void;
+  updateToken: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,6 +61,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const updateToken = (token: string) => {
+    Cookies.set("ACCESS_TOKEN", token);
+    fetchAuth();
+  };
+
   useEffect(() => {
     if (router.isReady) {
       fetchAuth();
@@ -85,7 +92,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ loading, decoded, fetchAuth, signOut }}>
+    <AuthContext.Provider
+      value={{ loading, decoded, fetchAuth, signOut, updateToken }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -3,6 +3,7 @@ import AuthApi from "@/middleware/auth-api";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
+  const businessId = (req.query.businessId as string) || "";
   const products = await db.product.findMany({
     orderBy: {
       createdAt: "desc",
@@ -11,7 +12,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
       productCategory: true,
     },
     where: {
-      isDeleted: false,
+      AND: [{ businessId }, { isDeleted: false }],
     },
   });
 
@@ -21,16 +22,17 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded, body } = req;
-    const { name, price, description, image, productCategory } = body;
+    const { name, price, description, image, productCategory, businessId } =
+      body;
     if (
       !name ||
       typeof name !== "string" ||
       !price ||
       isNaN(Number(price)) ||
       !productCategory ||
-      typeof productCategory !== "string"
+      typeof productCategory !== "string" ||
+      !businessId
     ) {
-      console.log({ name, price, productCategory });
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -39,6 +41,15 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         name: productCategory,
       },
     });
+
+    const checkBusiness = await db.business.findUnique({
+      where: {
+        id: businessId,
+      },
+    });
+    if (!checkBusiness) {
+      return res.status(400).json({ message: "Business not found" });
+    }
 
     let productCategoryId = checkProductCategory?.id;
     if (!checkProductCategory) {
@@ -67,6 +78,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         description: description || null,
         image: image || null,
         productCategoryId: productCategoryId || "",
+        businessId,
       },
     });
 

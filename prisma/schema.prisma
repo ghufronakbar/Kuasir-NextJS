@@ -9,11 +9,12 @@ datasource db {
 }
 
 model User {
-  id       String @id @default(uuid())
+  id       String  @id @default(uuid())
   name     String
-  email    String @unique
+  email    String  @unique
   password String
   role     Role
+  image    String?
 
   logActivities LogActivity[]
 
@@ -68,6 +69,8 @@ model Product {
 
   productCategoryId String
   productCategory   ProductCategory @relation(fields: [productCategoryId], references: [id], onDelete: Cascade)
+  businessId        String
+  business          Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
   recipes           Recipe[]
   orderItems        OrderItem[]
 
@@ -119,6 +122,7 @@ enum PaymentMethod {
   Cash
   QRIS
   Transfer
+  Online
 }
 
 model OrderItem {
@@ -158,6 +162,9 @@ model Business {
   orders           Order[]
   parentBusiness   ParentBusiness @relation(fields: [parentBusinessId], references: [id], onDelete: Cascade)
   parentBusinessId String
+  products         Product[]
+  outcomes         Outcome[]
+  transactions     Transaction[]
 
   isDeleted Boolean @default(false)
 
@@ -176,6 +183,9 @@ model Outcome {
   stockId String
   stock   Stock  @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
   isDeleted Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -183,11 +193,15 @@ model Outcome {
 }
 
 model Transaction {
-  id          String          @id @default(uuid())
+  id          String              @id @default(uuid())
   title       String
   amount      Float
-  description String?         @db.Text()
+  description String?             @db.Text()
   type        TransactionType
+  category    TransactionCategory
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   isDeleted Boolean @default(false)
 
@@ -198,6 +212,22 @@ model Transaction {
 enum TransactionType {
   Income
   Expense
+}
+
+enum TransactionCategory {
+  Operational_Salary
+  Operational_Rent
+  Operational_Utilities
+  Operational_Marketing
+
+  Capex_Asset
+  Capex_RnD
+  Capex_Legal
+
+  Financing_Loan
+  Financing_Investment
+  Financing_Debt
+  Financing_Dividend
 }
 
 model LogActivity {

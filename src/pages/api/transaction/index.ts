@@ -1,14 +1,23 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
+  const businessId = (req.query.businessId as string) || "";
   const transactions = await db.transaction.findMany({
     orderBy: {
       createdAt: "desc",
     },
     where: {
-      isDeleted: false,
+      AND: [
+        {
+          businessId,
+        },
+        {
+          isDeleted: false,
+        },
+      ],
     },
   });
 
@@ -18,19 +27,35 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { decoded, body } = req;
-    const { title, amount, description, type } = body;
+    const { title, amount, description, type, businessId, category } = body;
     if (
       !title ||
       typeof title !== "string" ||
       !amount ||
       isNaN(Number(amount)) ||
       !type ||
-      typeof type !== "string"
+      typeof type !== "string" ||
+      !businessId ||
+      typeof businessId !== "string" ||
+      !category
     )
       return res.status(400).json({ message: "All fields are required" });
 
     if (type !== "Income" && type !== "Expense") {
       return res.status(400).json({ message: "Invalid transaction type" });
+    }
+
+    if (Object.keys($Enums.TransactionCategory).includes(category) === false) {
+      return res.status(400).json({ message: "Invalid transaction category" });
+    }
+
+    const checkBusiness = await db.business.findUnique({
+      where: {
+        id: businessId,
+      },
+    });
+    if (!checkBusiness) {
+      return res.status(400).json({ message: "Business not found" });
     }
 
     const transaction = await db.transaction.create({
@@ -39,6 +64,8 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         title,
         description,
         type,
+        businessId,
+        category,
       },
     });
 

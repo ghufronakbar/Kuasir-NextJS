@@ -4,50 +4,40 @@ import formatRupiah from "@/helper/formatRupiah";
 import { cn } from "@/utils/cn";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { ChartData, Overview } from "./api/overview";
+import { ChartData, Overview, ReportOrder } from "./api/overview";
 import { api } from "@/config/api";
 import { Api } from "@/models/response";
 import { DetailProduct } from "@/models/schema";
+import { FaChartLine } from "react-icons/fa";
+import { MdBusiness } from "react-icons/md";
+import { LoadingPage } from "@/components/material/loading-page";
+import { useBusiness } from "@/hooks/useBusiness";
 
 const OverviewPage = () => {
-  const { data } = useOverview();
+  const { data: business, onChange, selectedBusiness, Loading } = useBusiness();
+  const { data } = useOverview(selectedBusiness);
   return (
-    <DashboardLayout title="Overview">
+    <DashboardLayout
+      title="Overview"
+      belowHeader={
+        <select
+          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
+          onChange={onChange}
+          value={selectedBusiness}
+        >
+          {business.map((item, index) => (
+            <option key={index} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      }
+    >
       {data ? (
         <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <GridProduct items={data.chart.topProduct as DetailProduct[]} />
           <GridMaster title={"Total Product"} count={data.master.product} />
-          <GridMaster title={"Total Business"} count={data.master.business} />
-          <GridItemOrder
-            title="Daily"
-            gapNetProfit={data.order.daily.gap.netProfit}
-            gapOmzet={data.order.daily.gap.omzet}
-            netProfit={data.order.daily.current.netProfit}
-            omzet={data.order.daily.current.omzet}
-            gapOrder={data.order.daily.gap.order}
-            totalItem={data.order.daily.current.orderItem}
-            totalOrder={data.order.daily.current.order}
-          />
-          <GridItemOrder
-            title="Weekly"
-            gapNetProfit={data.order.weekly.gap.netProfit}
-            gapOmzet={data.order.weekly.gap.omzet}
-            netProfit={data.order.weekly.current.netProfit}
-            omzet={data.order.weekly.current.omzet}
-            gapOrder={data.order.weekly.gap.order}
-            totalItem={data.order.weekly.current.orderItem}
-            totalOrder={data.order.weekly.current.order}
-          />
-          <GridItemOrder
-            title="Monthly"
-            gapNetProfit={data.order.monthly.gap.netProfit}
-            gapOmzet={data.order.monthly.gap.omzet}
-            netProfit={data.order.monthly.current.netProfit}
-            omzet={data.order.monthly.current.omzet}
-            gapOrder={data.order.monthly.gap.order}
-            totalItem={data.order.monthly.current.orderItem}
-            totalOrder={data.order.monthly.current.order}
-          />
+          <GridItemOrder items={data?.order} />
           <GridFinance
             title="Finance by Order"
             total={data.financeByOrder.total}
@@ -66,56 +56,61 @@ const OverviewPage = () => {
       ) : (
         <LoadingPage />
       )}
+      <Loading />
     </DashboardLayout>
   );
 };
 
-const useOverview = () => {
+const useOverview = (businessId: string) => {
   const [data, setData] = useState<Overview>();
 
   const fetchData = async () => {
-    const res = await api.get<Api<Overview>>("/overview");
+    const res = await api.get<Api<Overview>>("/overview", {
+      params: { businessId },
+    });
     setData(res.data.data);
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (businessId) {
+      fetchData();
+    }
+  }, [businessId]);
 
   return { data };
 };
 
 interface PropsOrder {
-  title: string;
-  omzet: number;
-  gapOmzet: number;
-  netProfit: number;
-  gapNetProfit: number;
-  totalOrder: number;
-  totalItem: number;
-  gapOrder: number;
+  items: ReportOrder[];
 }
 
-const GridItemOrder: React.FC<PropsOrder> = ({
-  title,
-  gapNetProfit,
-  gapOmzet,
-  netProfit,
-  omzet,
-  gapOrder,
-  totalItem,
-  totalOrder,
-}) => {
-  const isPositiveProfit = gapNetProfit > 0;
-  const isPositiveOmzet = gapOmzet > 0;
-  const isPositiveOrder = gapOrder > 0;
+const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
+  const [item, setItem] = useState<ReportOrder>(items[0] || {});
+  const { current, gap } = item;
+  const isPositiveProfit = gap?.netProfit > 0;
+  const isPositiveOmzet = gap?.omzet > 0;
+  const isPositiveOrder = gap?.order > 0;
+  const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedItem = items.find((item) => item.name === e.target.value);
+    if (selectedItem) setItem(selectedItem);
+  };
   return (
     <div className="w-full h-60 bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2">
-      <h4 className="text-md text-neutral-700">{title}</h4>
+      <div className="flex flex-row items-center justify-between">
+        <h2 className="text-md text-neutral-700">Order Report</h2>
+        <select
+          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
+          onChange={onChange}
+        >
+          {items.map((item, index) => (
+            <option key={index}>{item.name}</option>
+          ))}
+        </select>
+      </div>
       <div>
         <p className="text-sm text-neutral-600 font-normal">Omzet</p>
         <p className="text-3xl text-neutral-800 font-semibold">
-          {formatRupiah(omzet)}{" "}
+          {formatRupiah(current?.omzet)}{" "}
           <span
             className={cn(
               "text-base",
@@ -123,14 +118,14 @@ const GridItemOrder: React.FC<PropsOrder> = ({
             )}
           >
             {isPositiveOmzet ? "+" : ""}
-            {gapOmzet.toFixed(1)}%
+            {gap.omzet.toFixed(1)}%
           </span>
         </p>
       </div>
       <div>
         <p className="text-sm text-neutral-600 font-normal">Net Profit</p>
         <p className="text-xl text-neutral-800 font-semibold">
-          {formatRupiah(netProfit)}{" "}
+          {formatRupiah(current?.netProfit)}{" "}
           <span
             className={cn(
               "text-sm",
@@ -138,16 +133,16 @@ const GridItemOrder: React.FC<PropsOrder> = ({
             )}
           >
             {isPositiveProfit ? "+" : ""}
-            {gapNetProfit.toFixed(1)}%
+            {gap?.netProfit?.toFixed(1)}%
           </span>
         </p>
       </div>
       <div>
         <p className="text-sm text-neutral-600 font-normal">Order</p>
         <p className="text-xl text-neutral-800 font-semibold">
-          {totalOrder}{" "}
+          {current?.order}{" "}
           <span className="text-neutral-600 text-sm">
-            ({totalItem} products)
+            ({current?.orderItem} products)
           </span>{" "}
           <span
             className={cn(
@@ -156,7 +151,7 @@ const GridItemOrder: React.FC<PropsOrder> = ({
             )}
           >
             {isPositiveOrder ? "+" : ""}
-            {gapOrder.toFixed(1)}%
+            {gap.order.toFixed(1)}%
           </span>
         </p>
       </div>
@@ -267,10 +262,6 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-
-import { FaChartLine } from "react-icons/fa";
-import { MdBusiness } from "react-icons/md";
-import { LoadingPage } from "@/components/material/loading-page";
 
 interface ChartProps {
   items: ChartData[];

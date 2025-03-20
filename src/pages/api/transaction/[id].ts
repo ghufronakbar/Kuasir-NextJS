@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -22,9 +23,13 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
     const { decoded, body } = req;
-    const { title, amount, description } = body;
+    const { title, amount, description, category } = body;
     if (!title || typeof title !== "string" || !amount || isNaN(Number(amount)))
       return res.status(400).json({ message: "All fields are required" });
+
+    if (Object.keys($Enums.TransactionCategory).includes(category) === false) {
+      return res.status(400).json({ message: "Invalid transaction category" });
+    }
 
     const check = await db.transaction.findUnique({
       where: {
@@ -41,6 +46,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         amount: Number(amount),
         title,
         description,
+        category,
       },
       where: {
         id,

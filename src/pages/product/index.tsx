@@ -14,10 +14,16 @@ import formatRupiah from "@/helper/formatRupiah";
 import Link from "next/link";
 import { PLACEHOLDER } from "@/constants/image";
 import { UploadImage } from "@/components/material/upload-image";
+import { useBusiness } from "@/hooks/useBusiness";
 
 const THEAD = ["No", "", "Name", "Price", "Product Category", "Created At", ""];
 
 const ProductPage = () => {
+  const {
+    data: business,
+    selectedBusiness,
+    onChange: onChangeB,
+  } = useBusiness();
   const {
     data,
     Loading,
@@ -34,10 +40,24 @@ const ProductPage = () => {
     mutate,
     confirmDelete,
     onChangeImage,
-  } = useProducts();
+  } = useProducts(selectedBusiness);
+
   return (
     <DashboardLayout
       title="Product"
+      belowHeader={
+        <select
+          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
+          onChange={onChangeB}
+          value={selectedBusiness}
+        >
+          {business.map((item, index) => (
+            <option key={index} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      }
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -223,7 +243,7 @@ const initProductDTO: ProductDTO = {
   image: null,
 };
 
-const useProducts = () => {
+const useProducts = (businessId: string) => {
   const [data, setData] = useState<DetailProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [parents, setParents] = useState<string[]>([]);
@@ -239,10 +259,16 @@ const useProducts = () => {
   };
 
   const fetchData = async () => {
-    setLoading(true);
-    const response = await api.get<Api<DetailProduct[]>>("/product");
-    setData(response.data.data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const response = await api.get<Api<DetailProduct[]>>("/product", {
+        params: { businessId },
+      });
+      setData(response.data.data);
+      setLoading(false);
+    } catch (error) {
+      makeToast("error", error);
+    }
   };
 
   const fetchParents = async () => {
@@ -265,9 +291,11 @@ const useProducts = () => {
   };
 
   useEffect(() => {
-    fetchData();
-    fetchParents();
-  }, []);
+    if (businessId) {
+      fetchData();
+      fetchParents();
+    }
+  }, [businessId]);
 
   const mutate = async () => {
     try {
@@ -292,6 +320,7 @@ const useProducts = () => {
     try {
       const res = await api.post("/product", {
         ...form,
+        businessId,
         productCategory: isOther ? other : form.productCategory,
       });
       await fetching();
@@ -305,6 +334,7 @@ const useProducts = () => {
     try {
       const res = await api.put(`/product/${form.id}`, {
         ...form,
+        businessId,
         productCategory: isOther ? other : form.productCategory,
       });
       await fetching();

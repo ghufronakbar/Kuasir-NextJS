@@ -3,36 +3,35 @@ import { api } from "@/config/api";
 import formatDate from "@/helper/formatDate";
 import { AuthPage } from "@/middleware/auth-page";
 import { Api } from "@/models/response";
-import { DetailBusiness, DetailParentBusiness } from "@/models/schema";
 import { useEffect, useState } from "react";
 import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
-import { CachedBusiness } from "@/hooks/useBusiness";
+import { $Enums } from "@prisma/client";
+import Image from "next/image";
+import { PLACEHOLDER } from "@/constants/image";
+import { DetailUser } from "@/models/schema";
 
-const THEAD = ["No", "Name", "Parent Business", "Created At", ""];
+const THEAD = ["No", "", "Name", "Email", "Role", "Created At", ""];
 
-const BusinessPage = () => {
+const UserPage = () => {
   const {
     data,
     Loading,
     form,
     onChange,
-    parents,
-    other,
-    setOther,
     open,
     setOpen,
     onClickDetail,
     onClose,
-    isOther,
     mutate,
     confirmDelete,
-  } = useBusiness();
+    ROLES,
+  } = useUsers();
   return (
     <DashboardLayout
-      title="Business"
+      title="Users"
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -54,7 +53,7 @@ const BusinessPage = () => {
               <Dialog.Content>
                 <Dialog.Header>
                   <Dialog.Title className="font-semibold">
-                    {form.id === "-" ? "Create Business" : "Edit Business"}
+                    {form.id === "-" ? "Create User" : "Edit User Role"}
                   </Dialog.Title>
                   <Dialog.CloseTrigger asChild>
                     <CloseButton size="sm" />
@@ -72,36 +71,36 @@ const BusinessPage = () => {
                     <input
                       value={form.name}
                       onChange={(e) => onChange(e, "name")}
-                      placeholder="Haykatuju"
+                      placeholder="Lans The Prodigy"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                      disabled={form.id !== "-"}
+                    />
+                    <Label className="mt-2 font-medium">Email</Label>
+                    <input
+                      value={form.email}
+                      onChange={(e) => onChange(e, "email")}
+                      placeholder="lanstheprodigy@kuasir.com"
                       type="text"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                      disabled={form.id !== "-"}
                     />
-                    <Label className="mt-2 font-medium">Parent Business</Label>
+
+                    <Label className="mt-2 font-medium">Role</Label>
                     <select
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                      value={form.parentBusiness}
-                      onChange={(e) => onChange(e, "parentBusiness")}
+                      value={form.role}
+                      onChange={(e) => onChange(e, "role")}
                     >
-                      {parents.map((item) => (
+                      <option value="" disabled hidden>
+                        Select Role
+                      </option>
+                      {ROLES.map((item) => (
                         <option key={item} value={item}>
                           {item}
                         </option>
                       ))}
                     </select>
-                    {isOther && (
-                      <>
-                        <Label className="mt-2 font-medium">
-                          Name Parent Business
-                        </Label>
-                        <input
-                          value={other}
-                          onChange={(e) => setOther(e.target.value)}
-                          placeholder="Haykatuju"
-                          type="text"
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                        />
-                      </>
-                    )}
+
                     <Button
                       type="submit"
                       className="bg-teal-500 font-semibold text-white mt-4"
@@ -136,16 +135,24 @@ const BusinessPage = () => {
                 >
                   {index + 1}
                 </th>
+                <th scope="row" className="px-6 py-4">
+                  <Image
+                    src={item.image || PLACEHOLDER}
+                    alt=""
+                    width={400}
+                    height={400}
+                    className="min-w-12 min-h-12 w-12 h-12 rounded-lg object-cover"
+                  />
+                </th>
                 <th
                   scope="row"
                   className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
                 >
                   {item.name}
                 </th>
-                <td className="px-6 py-4">{item.parentBusiness.name}</td>
-                <td className="px-6 py-4">
-                  {formatDate(item.createdAt, true)}
-                </td>
+                <td className="px-6 py-4">{item.email}</td>
+                <td className="px-6 py-4">{item.role}</td>
+                <td className="px-6 py-4">{formatDate(item.createdAt)}</td>
                 <td className="px-6 py-4">
                   <div className="flex flex-row gap-2 font-medium">
                     <Button
@@ -172,70 +179,60 @@ const BusinessPage = () => {
   );
 };
 
-export default AuthPage(BusinessPage, ["CASHIER", "OWNER"]);
+export default AuthPage(UserPage, ["CASHIER", "OWNER"]);
 
-interface BusinessDTO {
+interface UserDTO {
   id: string;
   name: string;
-  parentBusiness: string;
+  email: string;
+  role: $Enums.Role;
 }
 
-const initBusinessDTO: BusinessDTO = {
+const initUserDTO: UserDTO = {
   id: "-",
   name: "",
-  parentBusiness: "",
+  email: "",
+  role: "CASHIER",
 };
 
-const useBusiness = () => {
-  const [data, setData] = useState<DetailBusiness[]>([]);
+const useUsers = () => {
+  const [data, setData] = useState<DetailUser[]>([]);
   const [loading, setLoading] = useState(false);
-  const [parents, setParents] = useState<string[]>([]);
-  const [form, setForm] = useState<BusinessDTO>(initBusinessDTO);
-  const [other, setOther] = useState("");
+  const [form, setForm] = useState<UserDTO>(initUserDTO);
   const [open, setOpen] = useState(false);
 
   const onChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    key: keyof BusinessDTO
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
+    key: keyof UserDTO
   ) => {
     setForm({ ...form, [key]: e.target.value });
   };
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailBusiness[]>>("/business");
+    const response = await api.get<Api<DetailUser[]>>("/user");
     setData(response.data.data);
-    const cachedBusiness: CachedBusiness = {
-      ttl: Date.now() + 60 * 60 * 1000,
-      data: response.data.data,
-    };
-    localStorage.setItem("business", JSON.stringify(cachedBusiness));
     setLoading(false);
   };
 
-  const fetchParents = async () => {
-    const res = await api.get<Api<DetailParentBusiness[]>>("/parent-business");
-    setParents([...res.data.data.map((item) => item.name), "Other"]);
-    setForm({ ...form, id: res.data.data?.[0]?.id || "-" });
-  };
-
-  const onClickDetail = (item: DetailBusiness) => {
+  const onClickDetail = (item: DetailUser) => {
     setOpen(true);
-    setForm({ ...item, parentBusiness: item.parentBusiness.name });
+    setForm(item);
   };
 
   const onClose = () => {
-    setForm(initBusinessDTO);
+    setForm(initUserDTO);
     setOpen(false);
   };
 
   const fetching = async () => {
-    await Promise.all([fetchData(), fetchParents()]);
+    await Promise.all([fetchData()]);
   };
 
   useEffect(() => {
-    fetchData();
-    fetchParents();
+    fetching();
   }, []);
 
   const mutate = async () => {
@@ -251,7 +248,7 @@ const useBusiness = () => {
     } catch (error) {
       makeToast("error", error);
     } finally {
-      setForm(initBusinessDTO);
+      setForm(initUserDTO);
       setLoading(false);
       setOpen(false);
     }
@@ -259,9 +256,8 @@ const useBusiness = () => {
 
   const create = async () => {
     try {
-      const res = await api.post("/business", {
-        name: form.name,
-        parentBusiness: isOther ? other : form.parentBusiness,
+      const res = await api.post("/user", {
+        ...form,
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -272,9 +268,8 @@ const useBusiness = () => {
 
   const edit = async () => {
     try {
-      const res = await api.put(`/business/${form.id}`, {
-        name: form.name,
-        parentBusiness: isOther ? other : form.parentBusiness,
+      const res = await api.patch(`/user/${form.id}`, {
+        ...form,
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -292,12 +287,12 @@ const useBusiness = () => {
     );
   };
 
-  const confirmDelete = async (item: DetailBusiness) => {
+  const confirmDelete = async (item: DetailUser) => {
     try {
       const isConfirm = confirm("Are you sure you want to delete this data?");
       if (!isConfirm || loading) return;
       setLoading(true);
-      const res = await api.delete(`/business/${item.id}`);
+      const res = await api.delete(`/user/${item.id}`);
       await fetchData();
       makeToast("success", res?.data?.message);
       setLoading(false);
@@ -308,22 +303,19 @@ const useBusiness = () => {
     }
   };
 
-  const isOther = form.parentBusiness === "Other";
+  const ROLES = Object.values($Enums.Role);
 
   return {
     data,
     Loading,
-    parents,
     onChange,
     form,
-    other,
-    setOther,
     open,
     setOpen,
     onClickDetail,
     onClose,
-    isOther,
     mutate,
     confirmDelete,
+    ROLES,
   };
 };
