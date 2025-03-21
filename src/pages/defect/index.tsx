@@ -3,36 +3,35 @@ import { api } from "@/config/api";
 import formatDate from "@/helper/formatDate";
 import { AuthPage } from "@/middleware/auth-page";
 import { Api } from "@/models/response";
-import { DetailBusiness, DetailParentBusiness } from "@/models/schema";
 import { useEffect, useState } from "react";
 import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
-import { CachedBusiness } from "@/hooks/useBusiness";
+import { DetailDefect, DetailStock } from "@/models/schema";
+import Image from "next/image";
+import { PLACEHOLDER } from "@/constants/image";
 
-const THEAD = ["No", "Name", "Parent Business", "Created At", ""];
+const THEAD = ["No", "", "Stock", "Amount", "Reason", "Created At", ""];
 
-const BusinessPage = () => {
+const DefectPage = () => {
   const {
     data,
     Loading,
     form,
     onChange,
-    parents,
-    other,
-    setOther,
+    stocks,
+    disable,
     open,
     setOpen,
     onClickDetail,
     onClose,
-    isOther,
     mutate,
     confirmDelete,
-  } = useBusiness();
+  } = useDefects();
   return (
     <DashboardLayout
-      title="Business"
+      title="Defect"
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -54,7 +53,9 @@ const BusinessPage = () => {
               <Dialog.Content>
                 <Dialog.Header>
                   <Dialog.Title className="font-semibold">
-                    {form.id === "-" ? "Create Business" : "Edit Business"}
+                    {form.id === "-"
+                      ? "Create Defect Stock"
+                      : "Edit Defect Stock"}
                   </Dialog.Title>
                   <Dialog.CloseTrigger asChild>
                     <CloseButton size="sm" />
@@ -68,40 +69,36 @@ const BusinessPage = () => {
                       mutate();
                     }}
                   >
-                    <Label className="mt-2 font-medium">Name</Label>
+                    <Label className="mt-2 font-medium">Amount</Label>
                     <input
-                      value={form.name}
-                      onChange={(e) => onChange(e, "name")}
-                      placeholder="Haykatuju"
+                      value={form.amount}
+                      onChange={(e) => onChange(e, "amount")}
+                      placeholder="Broken"
+                      type="number"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
+                    <Label className="mt-2 font-medium">Reason</Label>
+                    <input
+                      value={form.reason}
+                      onChange={(e) => onChange(e, "reason")}
+                      placeholder="Broken"
                       type="text"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                     />
-                    <Label className="mt-2 font-medium">Parent Business</Label>
+                    <Label className="mt-2 font-medium">Stock</Label>
                     <select
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                      value={form.parentBusiness}
-                      onChange={(e) => onChange(e, "parentBusiness")}
+                      value={form.stockId}
+                      onChange={(e) => onChange(e, "stockId")}
+                      disabled={disable}
                     >
-                      {parents.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
+                      <option value="">Select Stock</option>
+                      {stocks.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name} - {item.quantity} {item.unit}
                         </option>
                       ))}
                     </select>
-                    {isOther && (
-                      <>
-                        <Label className="mt-2 font-medium">
-                          Name Parent Business
-                        </Label>
-                        <input
-                          value={other}
-                          onChange={(e) => setOther(e.target.value)}
-                          placeholder="Haykatuju"
-                          type="text"
-                          className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                        />
-                      </>
-                    )}
                     <Button
                       type="submit"
                       className="bg-teal-500 font-semibold text-white mt-4"
@@ -136,13 +133,23 @@ const BusinessPage = () => {
                 >
                   {index + 1}
                 </th>
+                <th scope="row" className="px-6 py-4">
+                  <Image
+                    src={item.stock.image || PLACEHOLDER}
+                    alt=""
+                    width={400}
+                    height={400}
+                    className="min-w-12 min-h-12 w-12 h-12 rounded-lg object-cover"
+                  />
+                </th>
                 <th
                   scope="row"
                   className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap"
                 >
-                  {item.name}
+                  {item.stock.name}
                 </th>
-                <td className="px-6 py-4">{item.parentBusiness.name}</td>
+                <td className="px-6 py-4">{item.amount}</td>
+                <td className="px-6 py-4">{item.reason}</td>
                 <td className="px-6 py-4">
                   {formatDate(item.createdAt, true)}
                 </td>
@@ -172,70 +179,65 @@ const BusinessPage = () => {
   );
 };
 
-export default AuthPage(BusinessPage, ["CASHIER", "OWNER"]);
+export default AuthPage(DefectPage, ["CASHIER", "OWNER"]);
 
-interface BusinessDTO {
+interface DefectDTO {
   id: string;
-  name: string;
-  parentBusiness: string;
+  amount: number;
+  reason: string;
+  stockId: string;
 }
 
-const initBusinessDTO: BusinessDTO = {
+const initDefectDTO: DefectDTO = {
   id: "-",
-  name: "",
-  parentBusiness: "",
+  amount: 0,
+  reason: "",
+  stockId: "",
 };
 
-const useBusiness = () => {
-  const [_data, setData] = useState<DetailBusiness[]>([]);
+const useDefects = () => {
+  const [data, setData] = useState<DetailDefect[]>([]);
   const [loading, setLoading] = useState(false);
-  const [parents, setParents] = useState<string[]>([]);
-  const [form, setForm] = useState<BusinessDTO>(initBusinessDTO);
-  const [other, setOther] = useState("");
+  const [stocks, setStocks] = useState<DetailStock[]>([]);
+  const [form, setForm] = useState<DefectDTO>(initDefectDTO);
   const [open, setOpen] = useState(false);
 
   const onChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    key: keyof BusinessDTO
+    key: keyof DefectDTO
   ) => {
     setForm({ ...form, [key]: e.target.value });
   };
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailBusiness[]>>("/business");
+    const response = await api.get<Api<DetailDefect[]>>("/defect");
     setData(response.data.data);
-    const cachedBusiness: CachedBusiness = {
-      ttl: Date.now() + 60 * 60 * 1000,
-      data: response.data.data,
-    };
-    localStorage.setItem("business", JSON.stringify(cachedBusiness));
     setLoading(false);
   };
 
-  const fetchParents = async () => {
-    const res = await api.get<Api<DetailParentBusiness[]>>("/parent-business");
-    setParents([...res.data.data.map((item) => item.name), "Other"]);
-    setForm({ ...form, id: res.data.data?.[0]?.id || "-" });
+  const fetchStocks = async () => {
+    const response = await api.get<Api<DetailStock[]>>("/stock");
+    setStocks(response.data.data);
   };
 
-  const onClickDetail = (item: DetailBusiness) => {
+  const onClickDetail = (item: DetailDefect) => {
     setOpen(true);
-    setForm({ ...item, parentBusiness: item.parentBusiness.name });
+    setForm({ ...item });
   };
 
   const onClose = () => {
-    setForm(initBusinessDTO);
+    setForm(initDefectDTO);
     setOpen(false);
   };
 
   const fetching = async () => {
-    await Promise.all([fetchData(), fetchParents()]);
+    await Promise.all([fetchData()]);
   };
 
   useEffect(() => {
     fetchData();
-    fetchParents();
+    fetchStocks();
   }, []);
 
   const mutate = async () => {
@@ -251,7 +253,7 @@ const useBusiness = () => {
     } catch (error) {
       makeToast("error", error);
     } finally {
-      setForm(initBusinessDTO);
+      setForm(initDefectDTO);
       setLoading(false);
       setOpen(false);
     }
@@ -259,9 +261,8 @@ const useBusiness = () => {
 
   const create = async () => {
     try {
-      const res = await api.post("/business", {
-        name: form.name,
-        parentBusiness: isOther ? other : form.parentBusiness,
+      const res = await api.post("/defect", {
+        ...form,
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -273,8 +274,7 @@ const useBusiness = () => {
   const edit = async () => {
     try {
       const res = await api.put(`/business/${form.id}`, {
-        name: form.name,
-        parentBusiness: isOther ? other : form.parentBusiness,
+        ...form,
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -292,12 +292,12 @@ const useBusiness = () => {
     );
   };
 
-  const confirmDelete = async (item: DetailBusiness) => {
+  const confirmDelete = async (item: DetailDefect) => {
     try {
       const isConfirm = confirm("Are you sure you want to delete this data?");
       if (!isConfirm || loading) return;
       setLoading(true);
-      const res = await api.delete(`/business/${item.id}`);
+      const res = await api.delete(`/defect/${item.id}`);
       await fetchData();
       makeToast("success", res?.data?.message);
       setLoading(false);
@@ -308,23 +308,19 @@ const useBusiness = () => {
     }
   };
 
-  const isOther = form.parentBusiness === "Other";
-
-  const data = _data.filter((item) => item.name !== "All");
+  const disable = form.id !== "-";
 
   return {
     data,
     Loading,
-    parents,
+    stocks,
     onChange,
     form,
-    other,
-    setOther,
     open,
     setOpen,
     onClickDetail,
     onClose,
-    isOther,
+    disable,
     mutate,
     confirmDelete,
   };

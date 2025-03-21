@@ -1,5 +1,6 @@
 import {
   Business,
+  Defect,
   LogActivity,
   Order,
   OrderItem,
@@ -54,6 +55,12 @@ export interface DetailRecipe extends Recipe {
 export interface DetailStock extends Stock {
   recipes: DetailRecipe[];
   outcomes: DetailOutcome[];
+  defects: DetailDefect[];
+  _count: { recipes: number; outcomes: number };
+}
+
+export interface DetailDefect extends Defect {
+  stock: DetailStock;
 }
 
 // TRANSACTION IN DATA

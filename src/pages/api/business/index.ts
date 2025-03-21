@@ -27,7 +27,27 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  return res.status(200).json({ message: "OK", data: business });
+  const data: typeof business = [
+    ...business,
+    {
+      name: "All",
+      id: "-",
+      createdAt: new Date(),
+      parentBusinessId: "-",
+      parentBusiness: {
+        name: "All",
+        id: "-",
+        createdAt: new Date(),
+        isDeleted: false,
+        updatedAt: new Date(),
+      },
+      isDeleted: false,
+      updatedAt: new Date(),
+      orders: [],
+    },
+  ];
+
+  return res.status(200).json({ message: "OK", data: data });
 };
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {

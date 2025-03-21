@@ -6,7 +6,9 @@ import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
-  const decoded = req.decoded;
+  const decoded = req?.decoded;
+  const businessId = (req.query?.businessId as string) || "";
+  const isAll = req.query.businessId === "-";
 
   const user = await db.user.findUnique({
     where: {
@@ -44,6 +46,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
               },
             }
           : {},
+        { businessId: isAll ? undefined : businessId },
       ],
     },
   })) as DetailOrder[];

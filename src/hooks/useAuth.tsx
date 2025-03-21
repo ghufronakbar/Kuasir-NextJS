@@ -73,22 +73,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [router]);
 
   const signOut = async () => {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useLogout();
-  };
-
-  const useLogout = () => {
-    return useEffect(() => {
-      if (router.isReady) {
-        Cookies.remove("ACCESS_TOKEN");
-        setDecoded(null);
-        router.push("/login");
-      } else {
-        window.location.href = "/login";
-        Cookies.remove("ACCESS_TOKEN");
-        setDecoded(null);
-      }
-    }, [router.isReady]);
+    Cookies.remove("ACCESS_TOKEN");
+    setDecoded(null);
+    router.push("/login");
   };
 
   return (

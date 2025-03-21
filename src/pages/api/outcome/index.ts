@@ -5,6 +5,7 @@ import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
   const businessId = (req.query.businessId as string) || "";
+  const isAll = req.query.businessId === "-";
   const outcomes = await db.outcome.findMany({
     orderBy: {
       createdAt: "desc",
@@ -13,9 +14,12 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
       stock: true,
     },
     where: {
-      AND: [{ businessId }, { isDeleted: false }],
+      AND: [
+        { businessId: isAll ? undefined : businessId },
+        { isDeleted: false },
+      ],
     },
-  });  
+  });
 
   return res.status(200).json({ message: "OK", data: outcomes });
 };

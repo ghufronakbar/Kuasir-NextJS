@@ -10,6 +10,7 @@ import {
   FaBox,
   FaClipboardList,
   FaCogs,
+  FaHeartBroken,
   FaHome,
   FaMoneyBillWave,
   FaShoppingCart,
@@ -97,11 +98,17 @@ const links: LinkProps[] = [
         icon: <FaShoppingCart className={iconClassName} />,
         roles: ["OWNER", "CASHIER"],
       },
+      {
+        label: "Defect",
+        href: "/defect",
+        icon: <FaHeartBroken className={iconClassName} />,
+        roles: ["OWNER", "MANAGER_OPERATIONAL"],
+      },
     ],
   },
   {
     label: "Settings",
-    icon: <FaCogs className={iconClassName} />, // Add icon for this section
+    icon: <FaCogs className={iconClassName} />,
     items: [
       {
         label: "Account",
@@ -113,7 +120,7 @@ const links: LinkProps[] = [
         label: "Activity Log",
         href: "/activity",
         icon: <FaClipboardList className={iconClassName} />,
-        roles: ["OWNER"],
+        roles: ["OWNER", "CASHIER", "MANAGER_OPERATIONAL"],
       },
       {
         label: "Logout",

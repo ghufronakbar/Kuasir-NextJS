@@ -5,15 +5,15 @@ import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
   const businessId = (req.query.businessId as string) || "";
+  const isAll = req.query.businessId === "-";
   const transactions = await db.transaction.findMany({
     orderBy: {
       createdAt: "desc",
     },
     where: {
       AND: [
-        {
-          businessId,
-        },
+        { businessId: isAll ? undefined : businessId },
+
         {
           isDeleted: false,
         },

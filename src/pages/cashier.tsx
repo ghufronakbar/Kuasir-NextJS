@@ -6,18 +6,20 @@ import { PLACEHOLDER } from "@/constants/image";
 import formatRupiah from "@/helper/formatRupiah";
 import { makeToast } from "@/helper/makeToast";
 import { Api } from "@/models/response";
-import {
-  DetailBusiness,
-  DetailProduct,
-  DetailProductCategory,
-} from "@/models/schema";
+import { DetailProduct, DetailProductCategory } from "@/models/schema";
 import { $Enums } from "@prisma/client";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { MdShoppingCart } from "react-icons/md";
 import { Label } from "@/components/ui/label";
+import { useBusiness } from "@/hooks/useBusiness";
 
 const CashierPage = () => {
+  const {
+    data: business,
+    selectedBusiness,
+    onChange: onChangeB,
+  } = useBusiness();
   const {
     Loading,
     data,
@@ -31,17 +33,31 @@ const CashierPage = () => {
     form: form,
     MERCHANTS,
     PAYMENT_METHODS,
-    businesses,
     total,
     onChangeDescription,
     open,
     setOpen,
     handleCheckout,
     isDisable,
-  } = useCashier();
+  } = useCashier(selectedBusiness);
   return (
     <DashboardLayout
       title="Make Order"
+      belowHeader={
+        <select
+          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
+          onChange={onChangeB}
+          value={selectedBusiness}
+        >
+          {business
+            .filter((item) => item.name !== "All")
+            .map((item, index) => (
+              <option key={index} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+        </select>
+      }
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -77,18 +93,6 @@ const CashierPage = () => {
                       handleCheckout();
                     }}
                   >
-                    <Label className="mt-2 font-medium">Business</Label>
-                    <select
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
-                      value={form.businessId}
-                      onChange={(e) => onChange(e, "businessId")}
-                    >
-                      {businesses.map((item, index) => (
-                        <option key={index} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
                     <Label className="mt-2 font-medium">Merchant</Label>
                     <select
                       className="w-full p-2 border border-gray-200 rounded-lg shadow"
@@ -190,7 +194,7 @@ const CashierPage = () => {
                       <div className="font-semibold text-lg">{item.name}</div>
                       <div className="">{formatRupiah(item.price)}</div>
                     </div>
-                    <div className="self-end right-5 absolute flex flex-col gap-2 items-center">
+                    <div className="self-end flex flex-col gap-2 items-center">
                       <div className="flex flex-row gap-2 items-center border border-gray-200 rounded-lg p-2 overflow-hidden">
                         <button
                           onClick={() => decrement(item.id)}
@@ -240,13 +244,11 @@ const CashierPage = () => {
 interface OrderDTO {
   merchant: string;
   method: string;
-  businessId: string;
 }
 
 export const initOrderDTO: OrderDTO = {
   merchant: $Enums.Merchant.GrabFood,
   method: $Enums.PaymentMethod.QRIS,
-  businessId: "",
 };
 
 interface CartItem extends DetailProduct {
@@ -254,13 +256,12 @@ interface CartItem extends DetailProduct {
   description: string;
 }
 
-const useCashier = () => {
+const useCashier = (businessId: string) => {
   const [data, setData] = useState<DetailProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setOrderDTO] = useState<OrderDTO>(initOrderDTO);
   const [selectedProducts, setSelectedProducts] = useState<CartItem[]>([]);
   const [search, setSearch] = useState("");
-  const [businesses, setBusinesses] = useState<DetailBusiness[]>([]);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -276,7 +277,7 @@ const useCashier = () => {
   const resetState = () => {
     setSelectedProducts([]);
     setOpen(false);
-    setOrderDTO({ ...initOrderDTO, businessId: businesses?.[0]?.id || "" });
+    setOrderDTO({ ...initOrderDTO });
   };
 
   const onSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -334,17 +335,11 @@ const useCashier = () => {
     setOrderDTO({ ...form, [key]: e.target.value });
   };
 
-  const fetchBusinesses = async () => {
-    const response = await api.get<Api<DetailBusiness[]>>("/business");
-    setBusinesses(response.data.data);
-    if (response.data.data.length > 0) {
-      setOrderDTO({ ...form, businessId: response.data.data[0].id });
-    }
-  };
-
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailProduct[]>>("/product");
+    const response = await api.get<Api<DetailProduct[]>>("/product", {
+      params: { businessId },
+    });
     const groupedData: DetailProductCategory[] = [];
 
     response.data.data.forEach((product) => {
@@ -368,14 +363,15 @@ const useCashier = () => {
   };
 
   useEffect(() => {
-    fetchData();
-    fetchBusinesses();
-    setOrderDTO({
-      ...form,
-      merchant: $Enums.Merchant.GrabFood,
-      method: $Enums.PaymentMethod.QRIS,
-    });
-  }, []);
+    if (businessId) {
+      fetchData();
+      setOrderDTO({
+        ...form,
+        merchant: $Enums.Merchant.GrabFood,
+        method: $Enums.PaymentMethod.QRIS,
+      });
+    }
+  }, [businessId]);
 
   const Loading = () => <LoadingData loading={loading} />;
 
@@ -384,6 +380,7 @@ const useCashier = () => {
 
   const dataCheckout = {
     ...form,
+    businessId,
     orderItems: selectedProducts.map((item) => ({
       ...item,
       productId: item.id,
@@ -410,7 +407,6 @@ const useCashier = () => {
     loading ||
     loadingCheckout ||
     selectedProducts.length === 0 ||
-    !form.businessId ||
     !form.method ||
     !form.merchant;
 
@@ -427,7 +423,6 @@ const useCashier = () => {
     decrement,
     MERCHANTS,
     PAYMENT_METHODS,
-    businesses,
     total,
     onChangeDescription,
     open,

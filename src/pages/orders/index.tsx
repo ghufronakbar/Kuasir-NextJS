@@ -9,11 +9,32 @@ import { LoadingData } from "@/components/material/loading-data";
 import { PLACEHOLDER } from "@/constants/image";
 import { DetailOrderByDate } from "@/models/schema";
 import formatRupiah from "@/helper/formatRupiah";
+import { useBusiness } from "@/hooks/useBusiness";
 
 const OrdersPage = () => {
-  const { data, Loading } = useOrders();
+  const {
+    data: business,
+    selectedBusiness,
+    onChange: onChangeB,
+  } = useBusiness();
+  const { data, Loading } = useOrders(selectedBusiness);
   return (
-    <DashboardLayout title="Orders">
+    <DashboardLayout
+      title="Orders"
+      belowHeader={
+        <select
+          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
+          onChange={onChangeB}
+          value={selectedBusiness}
+        >
+          {business.map((item, index) => (
+            <option key={index} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      }
+    >
       <div className="flex flex-col">
         {data.map((item, index) => (
           <div
@@ -136,14 +157,18 @@ const OrdersPage = () => {
 
 export default AuthPage(OrdersPage, ["CASHIER", "OWNER"]);
 
-const useOrders = () => {
+const useOrders = (businessId: string) => {
   const [data, setData] = useState<DetailOrderByDate[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailOrderByDate[]>>("/order");
+    const response = await api.get<Api<DetailOrderByDate[]>>("/order", {
+      params: {
+        businessId,
+      },
+    });
     setData(response.data.data);
     setLoading(false);
   };
@@ -153,8 +178,10 @@ const useOrders = () => {
   };
 
   useEffect(() => {
-    fetching();
-  }, []);
+    if (businessId) {
+      fetching();
+    }
+  }, [businessId]);
 
   const Loading = () => <LoadingData loading={loading} />;
 

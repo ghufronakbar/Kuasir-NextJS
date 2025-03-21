@@ -387,30 +387,15 @@ const getChartData = async (
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const businessId = (req.query.businessId as string) || "";
-  const checkBusiness = await db.business.findFirst({
-    where: {
-      AND: [
-        {
-          id: businessId,
-        },
-        {
-          isDeleted: false,
-        },
-      ],
-    },
-  });
-  if (!checkBusiness) {
-    return res.status(404).json({ message: "Business not found" });
-  }
+  const isAll = req.query.businessId === "-";
+  console.log("businessId", businessId, isAll);
   const totalProduct = await db.product.count({
     where: {
       AND: [
         {
           isDeleted: false,
         },
-        {
-          businessId,
-        },
+        { businessId: isAll ? undefined : businessId },
       ],
     },
   });
@@ -420,9 +405,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         {
           isDeleted: false,
         },
-        {
-          businessId,
-        },
+        { businessId: isAll ? undefined : businessId },
       ],
     },
     orderBy: {
@@ -456,9 +439,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           isDeleted: false,
         },
         {
-          order: {
-            businessId,
-          },
+          order: isAll
+            ? undefined
+            : {
+                businessId,
+              },
         },
       ],
     },
@@ -476,9 +461,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         {
           isDeleted: false,
         },
-        {
-          businessId,
-        },
+        { businessId: isAll ? undefined : businessId },
       ],
     },
     orderBy: {
@@ -504,9 +487,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     },
     where: {
       AND: [
-        {
-          businessId,
-        },
+        { businessId: isAll ? undefined : businessId },
         {
           isDeleted: false,
         },
@@ -524,9 +505,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     },
     where: {
       AND: [
-        {
-          businessId,
-        },
+        { businessId: isAll ? undefined : businessId },
         {
           isDeleted: false,
         },
@@ -551,9 +530,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     },
     where: {
       AND: [
-        {
-          businessId,
-        },
+        { businessId: isAll ? undefined : businessId },
         {
           isDeleted: false,
         },
