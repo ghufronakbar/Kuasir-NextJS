@@ -97,6 +97,53 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 };
 
+const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
+  const id = (req.query.id as string) || "";
+  const { decoded } = req;
+  const stock = await db.stock.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  if (!stock) return res.status(404).json({ message: "Stock not found" });
+  if (stock.isDeleted)
+    return res.status(404).json({ message: "Stock not found" });
+
+  const ress = await db.stock.update({
+    where: {
+      id,
+    },
+    data: {
+      isDeleted: true,
+    },
+  });
+
+  const user = await db.user.findUnique({
+    where: {
+      id: decoded?.id || "",
+    },
+    select: {
+      name: true,
+    },
+  });
+
+  await db.logActivity.create({
+    data: {
+      referenceId: stock.id,
+      referenceModel: "Stock",
+      userId: decoded?.id || "",
+      type: "DELETE",
+      description: `${user?.name} delete stock ${stock.name}`,
+      detail: stock,
+    },
+  });
+
+  return res
+    .status(200)
+    .json({ message: "Successfull delete stock", data: ress });
+};
+
 const handler = (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === "GET") {
     return AuthApi(GET, ["OWNER", "CASHIER", "MANAGER_OPERATIONAL"])(req, res);
@@ -104,6 +151,10 @@ const handler = (req: NextApiRequest, res: NextApiResponse) => {
 
   if (req.method === "PUT") {
     return AuthApi(PUT, ["OWNER", "MANAGER_OPERATIONAL"])(req, res);
+  }
+
+  if (req.method === "DELETE") {
+    return AuthApi(DELETE, ["OWNER"])(req, res);
   }
 };
 

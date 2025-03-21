@@ -11,6 +11,7 @@ import { makeToast } from "@/helper/makeToast";
 import { DetailDefect, DetailStock } from "@/models/schema";
 import Image from "next/image";
 import { PLACEHOLDER } from "@/constants/image";
+import { useAuth } from "@/hooks/useAuth";
 
 const THEAD = ["No", "", "Stock", "Amount", "Reason", "Created At", ""];
 
@@ -29,6 +30,8 @@ const DefectPage = () => {
     mutate,
     confirmDelete,
   } = useDefects();
+  const { decoded } = useAuth();
+  const isAdmin = decoded?.role === "OWNER";
   return (
     <DashboardLayout
       title="Defect"
@@ -154,20 +157,22 @@ const DefectPage = () => {
                   {formatDate(item.createdAt, true)}
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-row gap-2 font-medium">
-                    <Button
-                      className="bg-teal-500 text-white px-2"
-                      onClick={() => onClickDetail(item)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      className="bg-red-500 text-white px-2"
-                      onClick={() => confirmDelete(item)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+                  {isAdmin && (
+                    <div className="flex flex-row gap-2 font-medium">
+                      <Button
+                        className="bg-teal-500 text-white px-2"
+                        onClick={() => onClickDetail(item)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        className="bg-red-500 text-white px-2"
+                        onClick={() => confirmDelete(item)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

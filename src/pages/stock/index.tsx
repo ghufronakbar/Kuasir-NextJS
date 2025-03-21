@@ -13,6 +13,7 @@ import { DetailStock } from "@/models/schema";
 import { LoadingData } from "@/components/material/loading-data";
 import { PLACEHOLDER } from "@/constants/image";
 import { UploadImage } from "@/components/material/upload-image";
+import { useAuth } from "@/hooks/useAuth";
 
 const THEAD = ["No", "", "Name", "Current Stock", "Created At", ""];
 
@@ -29,7 +30,10 @@ const StockPage = () => {
     onClose,
     mutate,
     onChangeImage,
+    onDelete,
   } = useStock();
+  const { decoded } = useAuth();
+  const isAdmin = decoded?.role === "OWNER";
   return (
     <DashboardLayout
       title="Stock"
@@ -156,9 +160,14 @@ const StockPage = () => {
                     >
                       Edit
                     </Button>
-                    <Button className="bg-red-500 text-white px-2">
-                      Delete
-                    </Button>
+                    {isAdmin && (
+                      <Button
+                        className="bg-red-500 text-white px-2"
+                        onClick={() => onDelete(item)}
+                      >
+                        Delete
+                      </Button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -280,6 +289,21 @@ const useStock = () => {
 
   const Loading = () => <LoadingData loading={loading} />;
 
+  const onDelete = async (item: DetailStock) => {
+    try {
+      const isConfirm = confirm("Are you sure you want to delete this data?");
+      if (!isConfirm) return;
+      setLoading(true);
+      const res = await api.delete(`/stock/${item.id}`);
+      await fetchData();
+      makeToast("success", res?.data?.message);
+    } catch (error) {
+      makeToast("error", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     data,
     Loading,
@@ -292,5 +316,6 @@ const useStock = () => {
     onClose,
     mutate,
     onChangeImage,
+    onDelete,
   };
 };

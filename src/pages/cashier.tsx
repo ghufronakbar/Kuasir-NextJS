@@ -132,8 +132,8 @@ const CashierPage = () => {
         </Dialog.Root>
       }
     >
-      <div className="w-full flex flex-row gap-4">
-        <div className="w-2/3 border border-gray-200 rounded-lg p-4 bg-white flex flex-col gap-4">
+      <div className="w-full flex flex-col lg:flex-row gap-4">
+        <div className="w-full lg:w-1/2 xl:w-2/3 border border-gray-200 rounded-lg p-4 bg-white flex flex-col gap-4">
           <h2 className="text-3xl font-bold">Select Menu</h2>
           <input
             type="text"
@@ -146,7 +146,7 @@ const CashierPage = () => {
             {data.map((item, index) => (
               <div key={index} className="flex flex-col gap-2">
                 <div className="text-xl font-semibold">{item.name}</div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2">
                   {item.products.map((product, idx) => (
                     <div
                       key={idx}
@@ -176,13 +176,13 @@ const CashierPage = () => {
             ))}
           </div>
         </div>
-        <div className="w-1/3 border border-gray-200 rounded-lg p-4 bg-white flex flex-col gap-8 h-fit sticky top-0">
+        <div className="w-full lg:w-1/2 xl:w-1/3 border border-gray-200 rounded-lg p-4 bg-white flex flex-col gap-8 h-fit sticky top-0">
           <div className="border border-gray-200 rounded-lg p-4 flex flex-col gap-8">
             <h2 className="text-3xl font-bold">Cart</h2>
             <div className="flex flex-col gap-4 w-full">
               {selectedProducts.map((item, index) => (
                 <div className="flex flex-col gap-2" key={index}>
-                  <div className="flex flex-row gap-4 w-full !aspect-[6/1] max-h-[140px] border border-gray-200 rounded-lg p-4 relative ">
+                  <div className="flex flex-row gap-4 w-full border border-gray-200 rounded-lg p-4 relative ">
                     <Image
                       src={item.image || PLACEHOLDER}
                       alt={item.name}
@@ -190,28 +190,32 @@ const CashierPage = () => {
                       height={100}
                       className="h-full w-auto !aspect-square object-cover rounded-lg shadow-md"
                     />
-                    <div className="flex flex-col h-full justify-center">
-                      <div className="font-semibold text-lg">{item.name}</div>
-                      <div className="">{formatRupiah(item.price)}</div>
-                    </div>
-                    <div className="self-end flex flex-col gap-2 items-center">
-                      <div className="flex flex-row gap-2 items-center border border-gray-200 rounded-lg p-2 overflow-hidden">
-                        <button
-                          onClick={() => decrement(item.id)}
-                          className="p-1 aspect-square cursor-pointer bg-neutral-200 w-8 h-8 rounded-lg"
-                        >
-                          -
-                        </button>
-                        <button className="font-semibold">{item.amount}</button>
-                        <button
-                          onClick={() => increment(item.id)}
-                          className="p-1 aspect-square cursor-pointer bg-neutral-200 w-8 h-8 rounded-lg"
-                        >
-                          +
-                        </button>
+                    <div className="w-full flex justify-between flex-col">
+                      <div className="flex flex-col justify-center">
+                        <div className="font-semibold text-lg line-clamp-1">{item.name}</div>
+                        <div className="">{formatRupiah(item.price)}</div>
                       </div>
-                      <div className="font-semibold ">
-                        {formatRupiah(item.price * item.amount)}
+                      <div className="self-end flex flex-col gap-2 items-center">
+                        <div className="flex flex-row gap-2 items-center border border-gray-200 rounded-lg p-2 overflow-hidden">
+                          <button
+                            onClick={() => decrement(item.id)}
+                            className="p-1 aspect-square cursor-pointer bg-neutral-200 w-8 h-8 rounded-lg"
+                          >
+                            -
+                          </button>
+                          <button className="font-semibold">
+                            {item.amount}
+                          </button>
+                          <button
+                            onClick={() => increment(item.id)}
+                            className="p-1 aspect-square cursor-pointer bg-neutral-200 w-8 h-8 rounded-lg"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <div className="font-semibold ">
+                          {formatRupiah(item.price * item.amount)}
+                        </div>
                       </div>
                     </div>
                   </div>

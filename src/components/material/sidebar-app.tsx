@@ -176,10 +176,14 @@ export function SidebarApp({ children }: { children: React.ReactNode }) {
                       .map((item, subIdx) => (
                         <div key={subIdx}>
                           {subIdx === 0 && <div className="mt-2" />}
-                          <SidebarLink key={subIdx} link={item} />
-                          {subIdx === link.items.length - 1 && (
-                            <div className="h-px bg-gray-200 my-4" />
-                          )}
+                          <SidebarLink key={subIdx} link={item} />                                                    
+                          {subIdx ===
+                            link.items.filter((item) =>
+                              item.roles.includes(
+                                decoded?.role || ("" as $Enums.Role)
+                              )
+                            ).length -
+                              1 && <div className="h-px bg-gray-200 my-4" />}
                         </div>
                       ))}
                   </div>

@@ -42,14 +42,14 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
         user?.role !== "OWNER"
           ? {
               createdAt: {
-                gte: new Date(new Date().setDate(new Date().getDate() - 7)),
+                gte: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
               },
             }
           : {},
         { businessId: isAll ? undefined : businessId },
       ],
     },
-  })) as DetailOrder[];
+  })) as DetailOrder[];  
 
   const filteredOrders: DetailOrderByDate[] = [];
 

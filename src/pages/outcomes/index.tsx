@@ -14,6 +14,7 @@ import Image from "next/image";
 import { PLACEHOLDER } from "@/constants/image";
 import formatRupiah from "@/helper/formatRupiah";
 import { useBusiness } from "@/hooks/useBusiness";
+import { useAuth } from "@/hooks/useAuth";
 
 const THEAD = ["No", "", "Name", "Amount", "Price", "Method", "Created At", ""];
 
@@ -41,6 +42,9 @@ const OutcomesPage = () => {
     stocks,
     methods,
   } = useOutcomes(selectedBusiness);
+
+  const { decoded } = useAuth();
+  const isAdmin = decoded?.role === "OWNER";
   return (
     <DashboardLayout
       title="Outcomes"
@@ -223,22 +227,27 @@ const OutcomesPage = () => {
                   {item.amount} {item.stock.unit}
                 </td>
                 <td className="px-6 py-4">{formatRupiah(item.price)}</td>
-                <td className="px-6 py-4">{formatDate(item.createdAt)}</td>
+                <td className="px-6 py-4">{item.method}</td>
                 <td className="px-6 py-4">
-                  <div className="flex flex-row gap-2 font-medium">
-                    <Button
-                      className="bg-teal-500 text-white px-2"
-                      onClick={() => onClickDetail(item)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      className="bg-red-500 text-white px-2"
-                      onClick={() => confirmDelete(item)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+                  {formatDate(item.createdAt, true, true)}
+                </td>
+                <td className="px-6 py-4">
+                  {isAdmin && (
+                    <div className="flex flex-row gap-2 font-medium">
+                      <Button
+                        className="bg-teal-500 text-white px-2"
+                        onClick={() => onClickDetail(item)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        className="bg-red-500 text-white px-2"
+                        onClick={() => confirmDelete(item)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

@@ -43,7 +43,7 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  const newAmount = check.stock.quantity - Number(check.amount);
+  const newAmount = check.stock.quantity + Number(check.amount);
 
   await db.stock.update({
     where: {

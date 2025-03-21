@@ -8,18 +8,28 @@ import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { DetailLogActivity } from "@/models/schema";
 import { convertToReadableString } from "@/helper/formatString";
+import { useAuth } from "@/hooks/useAuth";
 
-const THEAD = ["No", "Data", "User", "Action", "Description", "Time", ""];
+const THEAD = [
+  "No",
+  "Data",
+  "User",
+  "Action",
+  "Model",
+  "Description",
+  "Time",
+  "",
+];
 
 interface JSONValue {
   [key: string]: unknown;
 }
 
 const renderJson = (data: JSONValue): JSX.Element[] => {
-  return Object.entries(data).map(([key, value]) => {    
+  return Object.entries(data).map(([key, value]) => {
     if (typeof value === "object" && value !== null) {
       return (
-        <div key={key}>
+        <div key={key} className="py-4">
           <strong>{convertToReadableString(key)}:</strong>
           <div style={{ marginLeft: "20px" }}>
             {Array.isArray(value)
@@ -30,9 +40,9 @@ const renderJson = (data: JSONValue): JSX.Element[] => {
           </div>
         </div>
       );
-    }    
+    }
     return (
-      <div key={key}>
+      <div key={key} className="flex">
         <strong>{convertToReadableString(key)}:</strong> {JSON.stringify(value)}
       </div>
     );
@@ -46,6 +56,8 @@ const JsonViewer = ({ data }: { data: JSONValue }) => {
 const LogActivityScreen = () => {
   const { data, Loading, open, setOpen, onClickDetail, onClose, selected } =
     useLog();
+  const { decoded } = useAuth();
+  const isAdmin = decoded?.role === "OWNER";
   return (
     <DashboardLayout
       title="Log Activity"
@@ -77,7 +89,15 @@ const LogActivityScreen = () => {
                   </Dialog.CloseTrigger>
                 </Dialog.Header>
                 <Dialog.Body>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 overflow-x-auto overflow-auto">
+                    {selected?.before && (
+                      <>
+                        <h4 className="font-semibold text-lg">Before</h4>
+                        <JsonViewer
+                          data={(selected?.before as JSONValue) || {}}
+                        />
+                      </>
+                    )}
                     <h4 className="font-semibold text-lg">Detail</h4>
                     {selected?.detail && (
                       <JsonViewer data={selected.detail as JSONValue} />
@@ -116,8 +136,11 @@ const LogActivityScreen = () => {
                 >
                   {item.referenceModel}
                 </th>
-                <td className="px-6 py-4">{`${item.user.name} (${item.user.role})`}</td>
+                <td className="px-6 py-4">{`${item.user.name} ${
+                  isAdmin ? "(" + item.user.role + ")" : ""
+                }`}</td>
                 <td className="px-6 py-4">{item.type}</td>
+                <td className="px-6 py-4">{item.referenceModel}</td>
                 <td className="px-6 py-4">{item.description}</td>
                 <td className="px-6 py-4">
                   {formatDate(item.createdAt, true, true)}
