@@ -49,6 +49,12 @@ const links: LinkProps[] = [
         icon: <SiGoogleanalytics className={iconClassName} />,
         roles: ["OWNER"],
       },
+      {
+        label: "Employees",
+        href: "/user",
+        icon: <FaUser className={iconClassName} />,
+        roles: ["OWNER"],
+      },
     ],
   },
   {
@@ -201,12 +207,7 @@ const links: LinkProps[] = [
         icon: <FaUser className={iconClassName} />,
         roles: ["OWNER", "CASHIER", "MANAGER_OPERATIONAL"],
       },
-      {
-        label: "User",
-        href: "/user",
-        icon: <FaUser className={iconClassName} />,
-        roles: ["OWNER"],
-      },
+
       {
         label: "Activity Log",
         href: "/settings/activity",
