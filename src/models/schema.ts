@@ -71,3 +71,15 @@ export interface DetailUser extends User {
   logActivities: DetailLogActivity[];
   accessToken: string;
 }
+
+export interface Report {
+  total: number;
+  minus: number;
+  plus: number;
+}
+
+export const initReport: Report = {
+  total: 0,
+  minus: 0,
+  plus: 0,
+};

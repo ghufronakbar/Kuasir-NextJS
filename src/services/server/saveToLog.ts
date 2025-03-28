@@ -48,29 +48,23 @@ export const saveToLog = async (
       description = `${jsonValue?.name}`;
       break;
     case "Product":
-      description = `${jsonValue?.name} (${jsonValue?.productCategory.name}) - ${jsonValue?.price} for business ${jsonValue?.business?.name}`;
+      description = `${jsonValue?.name} (${jsonValue?.productCategory.name}) - ${jsonValue?.price}`;
       break;
     case "Defect":
       description = `${jsonValue?.stock} (${jsonValue?.amount})`;
       break;
     case "Recipe":
-      description = `${jsonValue?.product.name} with ${jsonValue?.stock.name} (${jsonValue?.amount})`;
+      description = `${jsonValue?.product?.name} with ${jsonValue?.stock?.name} (${jsonValue?.amount})`;
       break;
     case "Order":
-      description = `${jsonValue?.business.name} - ${
-        jsonValue?.merchant
-      } with ${jsonValue?.method} - ${jsonValue?.orderItems
+      description = `${jsonValue?.business} - ${jsonValue?.merchant} with ${
+        jsonValue?.method
+      } - ${jsonValue?.orderItems
         .map((item: OrderItem) => `${item.name} (${formatRupiah(item.amount)})`)
         .join(", ")} with total ${formatRupiah(jsonValue?.total)}`;
       break;
     case "OrderItem":
       description = `${jsonValue?.name}`;
-      break;
-    case "ParentBusiness":
-      description = `${jsonValue?.name}`;
-      break;
-    case "Business":
-      description = `${jsonValue?.name} (${jsonValue?.parentBusiness.name})`;
       break;
     case "Outcome":
       description = `${jsonValue?.stock?.name} (${jsonValue?.amount} ${
@@ -81,15 +75,15 @@ export const saveToLog = async (
         jsonValue?.adminFee
       )}`;
       break;
-    case "Transaction":
-      description = `${jsonValue?.business?.name} (${
-        jsonValue?.business?.parentBusiness?.name
-      }) - ${jsonValue?.title} (${
-        jsonValue?.category
-      }) with amount ${formatRupiah(jsonValue?.amount)}`;
-      break;
     case "LogActivity":
       description = `${jsonValue?.description}`;
+      break;
+    case "Operational":
+      description = `${jsonValue?.type} ${jsonValue?.description} (${formatRupiah(jsonValue?.amount)})`;
+    case "Capital":
+      description = `${jsonValue?.type} ${jsonValue?.description} (${formatRupiah(jsonValue?.amount)})`;
+    case "Finance":
+      description = `${jsonValue?.type} ${jsonValue?.description} (${formatRupiah(jsonValue?.amount)})`;
       break;
   }
 

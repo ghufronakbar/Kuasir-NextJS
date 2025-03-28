@@ -117,7 +117,7 @@ model Order {
   merchant Merchant
   method   PaymentMethod
   total    Float         @default(0)
-  business Business @default(Haykatuju)
+  business Business      @default(Haykatuju)
 
   orderItems OrderItem[]
 
@@ -204,4 +204,79 @@ enum LogType {
 enum Business {
   Haykatuju
   Majapahit
+}
+
+// OPERATIONAL
+
+enum TransactionType {
+  Income
+  Expense
+}
+
+enum OperationalType {
+  Salary
+  Rent
+  Utility
+  Marketing
+  Transaction
+}
+
+model Operational {
+  id          String          @id @default(uuid())
+  type        OperationalType
+  description String?         @db.Text()
+  note        String?         @db.Text()
+  amount      Float
+  transaction TransactionType
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// CAPEX
+
+enum CapitalType {
+  Asset
+  RnD
+  Legal
+  Transaction
+}
+
+model Capital {
+  id          String          @id @default(uuid())
+  type        CapitalType
+  description String?         @db.Text()
+  note        String?         @db.Text()
+  amount      Float
+  transaction TransactionType
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+// FINANCE
+
+enum FinanceType {
+  Loan
+  Investment
+  Dividend
+  Transaction
+}
+
+model Finance {
+  id          String          @id @default(uuid())
+  type        FinanceType
+  description String?         @db.Text()
+  note        String?         @db.Text()
+  amount      Float
+  transaction TransactionType
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
