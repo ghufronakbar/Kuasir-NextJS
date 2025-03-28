@@ -14,16 +14,10 @@ import formatRupiah from "@/helper/formatRupiah";
 import Link from "next/link";
 import { PLACEHOLDER } from "@/constants/image";
 import { UploadImage } from "@/components/material/upload-image";
-import { useBusiness } from "@/hooks/useBusiness";
 
 const THEAD = ["No", "", "Name", "Price", "Product Category", "Created At", ""];
 
 const ProductPage = () => {
-  const {
-    data: business,
-    selectedBusiness,
-    onChange: onChangeB,
-  } = useBusiness();
   const {
     data,
     Loading,
@@ -40,24 +34,11 @@ const ProductPage = () => {
     mutate,
     confirmDelete,
     onChangeImage,
-  } = useProducts(selectedBusiness);
+  } = useProducts();
 
   return (
     <DashboardLayout
       title="Product"
-      belowHeader={
-        <select
-          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
-          onChange={onChangeB}
-          value={selectedBusiness}
-        >
-          {business.map((item, index) => (
-            <option key={index} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-      }
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -244,7 +225,7 @@ const initProductDTO: ProductDTO = {
   image: null,
 };
 
-const useProducts = (businessId: string) => {
+const useProducts = () => {
   const [data, setData] = useState<DetailProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [parents, setParents] = useState<string[]>([]);
@@ -262,9 +243,7 @@ const useProducts = (businessId: string) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get<Api<DetailProduct[]>>("/product", {
-        params: { businessId },
-      });
+      const response = await api.get<Api<DetailProduct[]>>("/product");
       setData(response.data.data);
       setLoading(false);
     } catch (error) {
@@ -292,11 +271,9 @@ const useProducts = (businessId: string) => {
   };
 
   useEffect(() => {
-    if (businessId) {
-      fetchData();
-      fetchParents();
-    }
-  }, [businessId]);
+    fetchData();
+    fetchParents();
+  }, []);
 
   const mutate = async () => {
     try {
@@ -321,7 +298,6 @@ const useProducts = (businessId: string) => {
     try {
       const res = await api.post("/product", {
         ...form,
-        businessId,
         productCategory: isOther ? other : form.productCategory,
       });
       await fetching();
@@ -335,7 +311,6 @@ const useProducts = (businessId: string) => {
     try {
       const res = await api.put(`/product/${form.id}`, {
         ...form,
-        businessId,
         productCategory: isOther ? other : form.productCategory,
       });
       await fetching();

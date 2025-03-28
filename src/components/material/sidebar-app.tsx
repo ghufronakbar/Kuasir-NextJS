@@ -17,7 +17,7 @@ import {
   FaSignOutAlt,
   FaUser,
 } from "react-icons/fa";
-import { IoBusiness, IoFastFoodSharp } from "react-icons/io5";
+import { IoFastFoodSharp } from "react-icons/io5";
 import { SiGoogleanalytics } from "react-icons/si";
 import { RiExchangeDollarLine } from "react-icons/ri";
 import { GiExpense, GiRawEgg } from "react-icons/gi";
@@ -44,12 +44,6 @@ const links: LinkProps[] = [
     icon: <FaBox className={iconClassName} />, // Add icon for this section
     items: [
       {
-        label: "Business",
-        href: "/business",
-        icon: <IoBusiness className={iconClassName} />,
-        roles: ["OWNER"],
-      },
-      {
         label: "Product Menu",
         href: "/product",
         icon: <IoFastFoodSharp className={iconClassName} />,
@@ -66,18 +60,6 @@ const links: LinkProps[] = [
         label: "User",
         href: "/user",
         icon: <FaUser className={iconClassName} />,
-        roles: ["OWNER"],
-      },
-    ],
-  },
-  {
-    label: "Transasction",
-    icon: <FaMoneyBillWave className={iconClassName} />, // Add icon for this section
-    items: [
-      {
-        label: "Transactions",
-        href: "/transaction",
-        icon: <RiExchangeDollarLine className={iconClassName} />,
         roles: ["OWNER"],
       },
       {
@@ -103,6 +85,18 @@ const links: LinkProps[] = [
         href: "/defect",
         icon: <FaHeartBroken className={iconClassName} />,
         roles: ["OWNER", "MANAGER_OPERATIONAL"],
+      },
+    ],
+  },
+  {
+    label: "CAPEX",
+    icon: <FaMoneyBillWave className={iconClassName} />, // Add icon for this section
+    items: [
+      {
+        label: "Transactions",
+        href: "/transaction",
+        icon: <RiExchangeDollarLine className={iconClassName} />,
+        roles: ["OWNER"],
       },
     ],
   },
@@ -176,7 +170,7 @@ export function SidebarApp({ children }: { children: React.ReactNode }) {
                       .map((item, subIdx) => (
                         <div key={subIdx}>
                           {subIdx === 0 && <div className="mt-2" />}
-                          <SidebarLink key={subIdx} link={item} />                                                    
+                          <SidebarLink key={subIdx} link={item} />
                           {subIdx ===
                             link.items.filter((item) =>
                               item.roles.includes(

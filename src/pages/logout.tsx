@@ -8,7 +8,6 @@ const LogoutPage = () => {
   useEffect(() => {
     if (isReady) {
       signOut();
-      localStorage.removeItem("business");
     }
   }, [isReady]);
   return null;

@@ -4,8 +4,6 @@ import { saveToLog } from "@/services/server/saveToLog";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
-  const businessId = (req.query.businessId as string) || "";
-  const isAll = req.query.businessId === "-";
   const products = await db.product.findMany({
     orderBy: {
       createdAt: "desc",
@@ -14,10 +12,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
       productCategory: true,
     },
     where: {
-      AND: [
-        { businessId: isAll ? undefined : businessId },
-        { isDeleted: false },
-      ],
+      AND: { isDeleted: false },
     },
   });
 
@@ -27,16 +22,14 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { body } = req;
-    const { name, price, description, image, productCategory, businessId } =
-      body;
+    const { name, price, description, image, productCategory } = body;
     if (
       !name ||
       typeof name !== "string" ||
       !price ||
       isNaN(Number(price)) ||
       !productCategory ||
-      typeof productCategory !== "string" ||
-      !businessId
+      typeof productCategory !== "string"
     ) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -46,15 +39,6 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         name: productCategory,
       },
     });
-
-    const checkBusiness = await db.business.findUnique({
-      where: {
-        id: businessId,
-      },
-    });
-    if (!checkBusiness) {
-      return res.status(400).json({ message: "Business not found" });
-    }
 
     let productCategoryId = checkProductCategory?.id;
     if (!checkProductCategory) {
@@ -83,10 +67,8 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         description: description || null,
         image: image || null,
         productCategoryId: productCategoryId || "",
-        businessId,
       },
       include: {
-        business: true,
         productCategory: true,
       },
     });

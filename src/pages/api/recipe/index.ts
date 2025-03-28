@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { sync } from "@/services/server/sync";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -22,7 +23,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded, body } = req;
+    const { body } = req;
     const { amount, stockId, productId } = body;
     if (!amount || isNaN(Number(amount)))
       return res.status(400).json({ message: "All fields are required" });
@@ -94,23 +95,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     await sync();
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: recipe.id,
-        referenceModel: "Recipe",
-        userId: decoded?.id || "",
-        type: "CREATE",
-        description: `${user?.name} create recipe for ${recipe.product.name}`,
-        detail: recipe,
-      },
-    });
+    await saveToLog(req, "Recipe", recipe);
 
     return res
       .status(200)

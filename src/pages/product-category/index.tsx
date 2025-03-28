@@ -13,7 +13,7 @@ import { MdCreate } from "react-icons/md";
 
 const THEAD = ["No", "Name", "Total Product", "Created At", ""];
 
-const BusinessPage = () => {
+const ProductCategoryPage = () => {
   const {
     data,
     Loading,
@@ -142,7 +142,7 @@ const BusinessPage = () => {
   );
 };
 
-export default AuthPage(BusinessPage, ["CASHIER", "OWNER"]);
+export default AuthPage(ProductCategoryPage, ["CASHIER", "OWNER"]);
 
 interface ProductCategoryDTO {
   id: string;

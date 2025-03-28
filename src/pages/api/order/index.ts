@@ -8,19 +8,6 @@ import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
-  const decoded = req?.decoded;
-  const businessId = (req.query?.businessId as string) || "";
-  const isAll = req.query.businessId === "-";
-
-  const user = await db.user.findUnique({
-    where: {
-      id: decoded?.id,
-    },
-    select: {
-      role: true,
-    },
-  });
-
   const orders = (await db.order.findMany({
     orderBy: {
       createdAt: "desc",
@@ -34,22 +21,9 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
           product: true,
         },
       },
-      business: true,
     },
     where: {
-      AND: [
-        {
-          isDeleted: false,
-        },
-        user?.role !== "OWNER"
-          ? {
-              createdAt: {
-                gte: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
-              },
-            }
-          : {},
-        { businessId: isAll ? undefined : businessId },
-      ],
+      isDeleted: false,
     },
   })) as DetailOrder[];
 
@@ -77,14 +51,14 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { body } = req;
-    const { merchant, method, businessId, orderItems } = body;
+    const { merchant, method, business, orderItems } = body;
 
-    if (!merchant || !method || !businessId)
+    if (!merchant || !method || !business)
       return res.status(400).json({ message: "Please fill all fields" });
     if (
       typeof merchant !== "string" ||
       typeof method !== "string" ||
-      typeof businessId !== "string"
+      typeof business !== "string"
     )
       return res.status(400).json({ message: "Invalid data type" });
 
@@ -93,6 +67,9 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
 
     if (!$Enums.Merchant[merchant as keyof typeof $Enums.Merchant])
       return res.status(400).json({ message: "Invalid merchant" });
+
+    if (!$Enums.Business[business as keyof typeof $Enums.Business])
+      return res.status(400).json({ message: "Invalid business" });
 
     if (typeof orderItems !== "object")
       return res.status(400).json({ message: "Invalid order items" });
@@ -152,7 +129,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         merchant: $Enums.Merchant[merchant as keyof typeof $Enums.Merchant],
         method:
           $Enums.PaymentMethod[method as keyof typeof $Enums.PaymentMethod],
-        businessId,
+        business: business as $Enums.Business,
         total,
         orderItems: {
           createMany: {
@@ -166,7 +143,6 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
             product: true,
           },
         },
-        business: true,
       },
     });
 

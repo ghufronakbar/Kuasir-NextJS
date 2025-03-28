@@ -1,12 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { db } from "@/config/db";
-import { Information, Product, Recipe, Stock } from "@prisma/client";
+import { Product, Recipe, Stock } from "@prisma/client";
 
 export interface SynchonizeData {
   stocks: Stock[];
   recipes: Recipe[];
   products: Product[];
-  information: Information;
 }
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -15,17 +14,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       stocks: [],
       recipes: [],
       products: [],
-      information: {
-        createdAt: new Date(),
-        id: "",
-        isDeleted: false,
-        orderBalance: 0,
-        outcomeBalance: 0,
-        totalBalance: 0,
-        transactionBalance: 0,
-        updatedAt: new Date(),
-        disbursableBalance: 0,
-      },
     };
 
     const stocks = await db.stock.findMany({
@@ -149,85 +137,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       });
       response.stocks.push(ress);
     }
-
-    // INFORMATON
-
-    const informations = await db.information.findMany({});
-    const information = informations[0];
-
-    let orderBalance = 0;
-    let outcomeBalance = 0;
-    let transactionBalance = 0;
-    let disbursableBalance = 0;
-
-    const [orders, outcomes, transactions] = await Promise.all([
-      db.order.findMany({
-        where: {
-          isDeleted: false,
-        },
-        select: {
-          total: true,
-        },
-      }),
-      db.outcome.findMany({
-        where: {
-          isDeleted: false,
-        },
-        select: {
-          adminFee: true,
-          price: true,
-        },
-      }),
-      db.transaction.findMany({
-        where: {
-          isDeleted: false,
-        },
-        select: {
-          amount: true,
-          type: true,
-          category: true,
-        },
-      }),
-    ]);
-
-    for (const order of orders) {
-      orderBalance += order.total;
-      disbursableBalance += order.total;
-    }
-
-    for (const outcome of outcomes) {
-      outcomeBalance += outcome.price + outcome.adminFee;
-      disbursableBalance -= outcome.price + outcome.adminFee;
-    }
-
-    for (const transaction of transactions) {
-      if (transaction.type === "Income") {
-        transactionBalance += transaction.amount;
-      } else {
-        transactionBalance -= transaction.amount;
-      }
-
-      if (transaction.category === "Financing_Dividend") {
-        disbursableBalance -= transaction.amount;
-      }
-    }
-
-    const totalBalance = orderBalance - outcomeBalance + transactionBalance;
-
-    const updatedInformation = await db.information.update({
-      where: {
-        id: information.id,
-      },
-      data: {
-        orderBalance,
-        outcomeBalance,
-        transactionBalance,
-        totalBalance,
-        disbursableBalance,
-      },
-    });
-
-    response.information = updatedInformation;
 
     return res.status(200).json({
       message:

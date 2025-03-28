@@ -30,6 +30,8 @@ enum Role {
   CASHIER
 }
 
+// PRODUCT
+
 model Stock {
   id           String  @id @default(uuid())
   name         String
@@ -70,10 +72,9 @@ model Product {
 
   productCategoryId String
   productCategory   ProductCategory @relation(fields: [productCategoryId], references: [id], onDelete: Cascade)
-  businessId        String
-  business          Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  recipes           Recipe[]
-  orderItems        OrderItem[]
+
+  recipes    Recipe[]
+  orderItems OrderItem[]
 
   isDeleted Boolean @default(false)
 
@@ -116,9 +117,8 @@ model Order {
   merchant Merchant
   method   PaymentMethod
   total    Float         @default(0)
+  business Business @default(Haykatuju)
 
-  businessId String
-  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
 
   isDeleted Boolean @default(false)
@@ -158,35 +158,6 @@ model OrderItem {
   updatedAt DateTime @default(now()) @updatedAt
 }
 
-model ParentBusiness {
-  id   String @id @default(uuid())
-  name String //"Online Food"
-
-  businesses Business[]
-
-  isDeleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-model Business {
-  id   String @id @default(uuid())
-  name String // "Haykatuju Raso" | "Dendeng Majapahit"
-
-  orders           Order[]
-  parentBusiness   ParentBusiness @relation(fields: [parentBusinessId], references: [id], onDelete: Cascade)
-  parentBusinessId String
-  products         Product[]
-  outcomes         Outcome[]
-  transactions     Transaction[]
-
-  isDeleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
 model Outcome {
   id          String        @id @default(uuid())
   amount      Float
@@ -199,53 +170,13 @@ model Outcome {
   stockId String
   stock   Stock  @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-
   isDeleted Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
 
-model Transaction {
-  id          String              @id @default(uuid())
-  title       String
-  amount      Float
-  description String?             @db.Text()
-  type        TransactionType
-  category    TransactionCategory
-
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-
-  isDeleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-enum TransactionType {
-  Income
-  Expense
-}
-
-enum TransactionCategory {
-  Operational_Salary
-  Operational_Rent
-  Operational_Utilities
-  Operational_Marketing
-
-  Capex_Asset
-  Capex_RnD
-  Capex_Legal
-
-  Financing_Loan
-  Financing_Investment
-  Financing_Debt
-  Financing_Dividend
-}
-
+// LOG ACTIVITY
 model LogActivity {
   id             String  @id @default(uuid())
   description    String  @db.Text()
@@ -270,16 +201,7 @@ enum LogType {
   DELETE
 }
 
-model Information {
-  id                 String @id @default(uuid())
-  totalBalance       Float  @default(0) // total dari order - outcome + transaction
-  orderBalance       Float  @default(0) // dari penjualan
-  transactionBalance Float  @default(0) // dari transaksi seperti loan, investment, operational
-  outcomeBalance     Float  @default(0) // dari pembelian stock
-  disbursableBalance Float  @default(0)
-
-  isDeleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+enum Business {
+  Haykatuju
+  Majapahit
 }

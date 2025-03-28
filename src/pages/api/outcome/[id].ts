@@ -23,8 +23,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
     const { body } = req;
-    const { amount, price, method, stockId, category, businessId, adminFee } =
-      body;
+    const { amount, price, method, stockId, category, adminFee } = body;
     if (
       !amount ||
       isNaN(Number(amount)) ||
@@ -32,8 +31,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       isNaN(Number(price)) ||
       !method ||
       !stockId ||
-      !category ||
-      !businessId
+      !category
     )
       return res.status(400).json({ message: "All fields are required" });
 
@@ -58,15 +56,6 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         outcomes: true,
       },
     });
-
-    const checkBusiness = await db.business.findUnique({
-      where: {
-        id: businessId,
-      },
-    });
-    if (!checkBusiness) {
-      return res.status(400).json({ message: "Business not found" });
-    }
 
     if (!checkId) {
       return res.status(400).json({ message: "Outcome not found" });

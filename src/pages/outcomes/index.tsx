@@ -13,18 +13,12 @@ import { $Enums } from "@prisma/client";
 import Image from "next/image";
 import { PLACEHOLDER } from "@/constants/image";
 import formatRupiah from "@/helper/formatRupiah";
-import { useBusiness } from "@/hooks/useBusiness";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const THEAD = ["No", "", "Name", "Amount", "Price", "Method", "Created At", ""];
 
 const OutcomesPage = () => {
-  const {
-    data: business,
-    selectedBusiness,
-    onChange: onChangeB,
-  } = useBusiness();
   const {
     data,
     Loading,
@@ -47,26 +41,13 @@ const OutcomesPage = () => {
     otherAdminFee,
     setOtherAdminFee,
     onClickAdminFee,
-  } = useOutcomes(selectedBusiness);
+  } = useOutcomes();
 
   const { decoded } = useAuth();
   const isAdmin = decoded?.role === "OWNER";
   return (
     <DashboardLayout
       title="Outcomes"
-      belowHeader={
-        <select
-          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
-          onChange={onChangeB}
-          value={selectedBusiness}
-        >
-          {business.map((item, index) => (
-            <option key={index} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-      }
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -107,7 +88,7 @@ const OutcomesPage = () => {
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                       value={form.stockId}
                       onChange={(e) => onChange(e, "stockId")}
-                    >                      
+                    >
                       <option value="">Select Stock</option>
                       {stocks.map((item) => (
                         <option key={item.id} value={item.id}>
@@ -315,7 +296,7 @@ const initOutcomeDTO: OutcomeDTO = {
   adminFee: "0",
 };
 
-const useOutcomes = (businessId: string) => {
+const useOutcomes = () => {
   const [data, setData] = useState<DetailOutcome[]>([]);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
@@ -339,9 +320,7 @@ const useOutcomes = (businessId: string) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailOutcome[]>>("/outcome", {
-      params: { businessId },
-    });
+    const response = await api.get<Api<DetailOutcome[]>>("/outcome");
     setData(response.data.data);
     const uniqueCategories = Array.from(
       new Set(response.data.data.map((item) => item.category))
@@ -383,10 +362,8 @@ const useOutcomes = (businessId: string) => {
   };
 
   useEffect(() => {
-    if (businessId) {
-      fetching();
-    }
-  }, [businessId]);
+    fetching();
+  }, []);
 
   const mutate = async () => {
     try {
@@ -411,7 +388,6 @@ const useOutcomes = (businessId: string) => {
     try {
       const res = await api.post("/outcome", {
         ...form,
-        businessId,
         category: isOther ? other : form.category,
         adminFee: isOtherAdminFee
           ? Number(otherAdminFee)
@@ -427,8 +403,7 @@ const useOutcomes = (businessId: string) => {
   const edit = async () => {
     try {
       const res = await api.put(`/outcome/${form.id}`, {
-        ...form,
-        businessId,
+        ...form,        
         category: isOther ? other : form.category,
         adminFee: isOtherAdminFee
           ? Number(otherAdminFee)

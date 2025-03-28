@@ -1,39 +1,17 @@
 import {
-  Business,
   Defect,
   LogActivity,
   Order,
   OrderItem,
   Outcome,
-  ParentBusiness,
   Product,
   ProductCategory,
   Recipe,
   Stock,
-  Transaction,
   User,
 } from "@prisma/client";
 
-// MASTER DATA
-
-export interface DetailBusiness extends Business {
-  orders: DetailOrder[];
-  products: DetailProduct[];
-  outcomes: DetailOutcome[];
-  transactions: DetailTransaction[];
-  parentBusiness: DetailParentBusiness;
-  _count: {
-    orders: number;
-    products: number;
-    outcomes: number;
-    transactions: number;
-  };
-}
-
-export interface DetailParentBusiness extends ParentBusiness {
-  businesses: DetailBusiness[];
-  _count: { businesses: number };
-}
+// PRODUCT
 
 export interface DetailProduct extends Product {
   productCategory: DetailProductCategory;
@@ -63,11 +41,8 @@ export interface DetailDefect extends Defect {
   stock: DetailStock;
 }
 
-// TRANSACTION IN DATA
-
 export interface DetailOrder extends Order {
   orderItems: DetailOrderItem[];
-  business: DetailBusiness;
   _count: { orderItems: number };
 }
 
@@ -82,16 +57,8 @@ export interface DetailOrderByDate {
   orders: DetailOrder[];
 }
 
-// TRANSACTION OUT DATA
-
 export interface DetailOutcome extends Outcome {
   stock: DetailStock;
-}
-
-// TRANSACTION FOR ACOUNTANT
-
-export interface DetailTransaction extends Transaction {
-  business: DetailBusiness;
 }
 
 // LOG DATA

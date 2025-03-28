@@ -33,14 +33,14 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
     const { body } = req;
-    const { merchant, method, businessId, orderItems } = body;
+    const { merchant, method, business, orderItems } = body;
 
-    if (!merchant || !method || !businessId)
+    if (!merchant || !method || !business)
       return res.status(400).json({ message: "Please fill all fields" });
     if (
       typeof merchant !== "string" ||
       typeof method !== "string" ||
-      typeof businessId !== "string"
+      typeof business !== "string"
     )
       return res.status(400).json({ message: "Invalid data type" });
 
@@ -49,6 +49,9 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
 
     if (!$Enums.Merchant[merchant as keyof typeof $Enums.Merchant])
       return res.status(400).json({ message: "Invalid merchant" });
+
+    if (!$Enums.Business[business as keyof typeof $Enums.Business])
+      return res.status(400).json({ message: "Invalid business" });
 
     if (typeof orderItems !== "object")
       return res.status(400).json({ message: "Invalid order items" });
@@ -139,20 +142,20 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         merchant: $Enums.Merchant[merchant as keyof typeof $Enums.Merchant],
         method:
           $Enums.PaymentMethod[method as keyof typeof $Enums.PaymentMethod],
-        businessId,
+        business: business as $Enums.Business,
         orderItems: {
           createMany: {
             data: orderItems,
           },
         },
       },
+
       include: {
         orderItems: {
           include: {
             product: true,
           },
         },
-        business: true,
       },
     });
 
@@ -192,7 +195,6 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
             product: true,
           },
         },
-        business: true,
       },
     });
 

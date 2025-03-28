@@ -386,27 +386,18 @@ const getChartData = async (
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  const businessId = (req.query.businessId as string) || "";
-  const isAll = req.query.businessId === "-";
-  console.log("businessId", businessId, isAll);
   const totalProduct = await db.product.count({
     where: {
       AND: [
         {
           isDeleted: false,
         },
-        { businessId: isAll ? undefined : businessId },
       ],
     },
   });
   const bestProduct = await db.product.findMany({
     where: {
-      AND: [
-        {
-          isDeleted: false,
-        },
-        { businessId: isAll ? undefined : businessId },
-      ],
+      isDeleted: false,
     },
     orderBy: {
       orderItems: {
@@ -442,13 +433,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         {
           isDeleted: false,
         },
-        {
-          order: isAll
-            ? undefined
-            : {
-                businessId,
-              },
-        },
       ],
     },
   });
@@ -461,12 +445,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const worstProduct = await db.product.findFirst({
     where: {
-      AND: [
-        {
-          isDeleted: false,
-        },
-        { businessId: isAll ? undefined : businessId },
-      ],
+      isDeleted: false,
     },
     orderBy: {
       orderItems: {
@@ -506,12 +485,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     },
     where: {
-      AND: [
-        { businessId: isAll ? undefined : businessId },
-        {
-          isDeleted: false,
-        },
-      ],
+      AND: {
+        isDeleted: false,
+      },
     },
   });
 
@@ -519,52 +495,20 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const monthlyData = await getDataOrderMonthly(orders as DetailOrder[]);
   const weeklyData = await getDataOrderWeekly(orders as DetailOrder[]);
 
-  const transactions = await db.transaction.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    where: {
-      AND: [
-        { businessId: isAll ? undefined : businessId },
-        {
-          isDeleted: false,
-        },
-      ],
-    },
-  });
-
-  let totalIncomeByTrans = 0;
-  let totalExpenseByTrans = 0;
-
-  for (const t of transactions) {
-    if (t.type === "Expense") {
-      totalExpenseByTrans += t.amount;
-    } else {
-      totalIncomeByTrans += t.amount;
-    }
-  }
-
   const outcomes = await db.outcome.findMany({
     orderBy: {
       createdAt: "desc",
     },
     where: {
-      AND: [
-        { businessId: isAll ? undefined : businessId },
-        {
-          isDeleted: false,
-        },
-      ],
+      isDeleted: false,
     },
   });
-
-  const totalByTrans = totalIncomeByTrans - totalExpenseByTrans;
 
   let totalIncomeByOrder = 0;
   let totalExpenseByOrder = 0;
 
   for (const order of orders) {
-    totalIncomeByOrder += order.total;    
+    totalIncomeByOrder += order.total;
   }
 
   for (const outcome of outcomes) {
@@ -600,9 +544,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       worstSeller: worstProduct! as DetailProduct,
     },
     financeByTransaction: {
-      totalIncome: totalIncomeByTrans,
-      totalExpense: totalExpenseByTrans,
-      total: totalByTrans,
+      totalIncome: 0,
+      totalExpense: 0,
+      total: 0,
     },
     financeByOrder: {
       totalIncome: totalIncomeByOrder,

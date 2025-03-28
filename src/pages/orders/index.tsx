@@ -11,6 +11,7 @@ import { DetailOrderByDate } from "@/models/schema";
 import formatRupiah from "@/helper/formatRupiah";
 import { useBusiness } from "@/hooks/useBusiness";
 import { makeToast } from "@/helper/makeToast";
+import { $Enums } from "@prisma/client";
 
 const OrdersPage = () => {
   const {
@@ -18,7 +19,12 @@ const OrdersPage = () => {
     selectedBusiness,
     onChange: onChangeB,
   } = useBusiness();
-  const { data, Loading, deleteOrder } = useOrders(selectedBusiness);
+  const { data: d, Loading, deleteOrder } = useOrders(selectedBusiness);
+  const data = d.filter((item) =>
+    item.orders.some(
+      (order) => order.business === (selectedBusiness as $Enums.Business)
+    )
+  );
   return (
     <DashboardLayout
       title="Orders"
@@ -29,8 +35,8 @@ const OrdersPage = () => {
           value={selectedBusiness}
         >
           {business.map((item, index) => (
-            <option key={index} value={item.id}>
-              {item.name}
+            <option key={index} value={item}>
+              {item}
             </option>
           ))}
         </select>
@@ -110,7 +116,7 @@ const OrdersPage = () => {
                         >
                           Business
                         </th>
-                        <td className="px-6 py-4">{order.business.name}</td>
+                        <td className="px-6 py-4">{order.business}</td>
                       </tr>
                     </table>
                   </div>

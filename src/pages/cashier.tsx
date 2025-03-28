@@ -15,11 +15,7 @@ import { Label } from "@/components/ui/label";
 import { useBusiness } from "@/hooks/useBusiness";
 
 const CashierPage = () => {
-  const {
-    data: business,
-    selectedBusiness,
-    onChange: onChangeB,
-  } = useBusiness();
+  const { data: business } = useBusiness();
   const {
     Loading,
     data,
@@ -39,25 +35,10 @@ const CashierPage = () => {
     setOpen,
     handleCheckout,
     isDisable,
-  } = useCashier(selectedBusiness);
+  } = useCashier();
   return (
     <DashboardLayout
       title="Make Order"
-      belowHeader={
-        <select
-          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
-          onChange={onChangeB}
-          value={selectedBusiness}
-        >
-          {business
-            .filter((item) => item.name !== "All")
-            .map((item, index) => (
-              <option key={index} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-        </select>
-      }
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -93,6 +74,18 @@ const CashierPage = () => {
                       handleCheckout();
                     }}
                   >
+                    <Label className="mt-2 font-medium">Business</Label>
+                    <select
+                      className="w-full p-2 border border-gray-200 rounded-lg shadow"
+                      value={form.business}
+                      onChange={(e) => onChange(e, "business")}
+                    >
+                      {business.map((item, index) => (
+                        <option key={index} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
                     <Label className="mt-2 font-medium">Merchant</Label>
                     <select
                       className="w-full p-2 border border-gray-200 rounded-lg shadow"
@@ -192,7 +185,9 @@ const CashierPage = () => {
                     />
                     <div className="w-full flex justify-between flex-col">
                       <div className="flex flex-col justify-center">
-                        <div className="font-semibold text-lg line-clamp-1">{item.name}</div>
+                        <div className="font-semibold text-lg line-clamp-1">
+                          {item.name}
+                        </div>
                         <div className="">{formatRupiah(item.price)}</div>
                       </div>
                       <div className="self-end flex flex-col gap-2 items-center">
@@ -248,11 +243,13 @@ const CashierPage = () => {
 interface OrderDTO {
   merchant: string;
   method: string;
+  business: $Enums.Business;
 }
 
 export const initOrderDTO: OrderDTO = {
   merchant: $Enums.Merchant.GrabFood,
   method: $Enums.PaymentMethod.QRIS,
+  business: "Haykatuju",
 };
 
 interface CartItem extends DetailProduct {
@@ -260,7 +257,7 @@ interface CartItem extends DetailProduct {
   description: string;
 }
 
-const useCashier = (businessId: string) => {
+const useCashier = () => {
   const [data, setData] = useState<DetailProductCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setOrderDTO] = useState<OrderDTO>(initOrderDTO);
@@ -341,9 +338,7 @@ const useCashier = (businessId: string) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<DetailProduct[]>>("/product", {
-      params: { businessId },
-    });
+    const response = await api.get<Api<DetailProduct[]>>("/product");
     const groupedData: DetailProductCategory[] = [];
 
     response.data.data.forEach((product) => {
@@ -367,15 +362,13 @@ const useCashier = (businessId: string) => {
   };
 
   useEffect(() => {
-    if (businessId) {
-      fetchData();
-      setOrderDTO({
-        ...form,
-        merchant: $Enums.Merchant.GrabFood,
-        method: $Enums.PaymentMethod.QRIS,
-      });
-    }
-  }, [businessId]);
+    fetchData();
+    setOrderDTO({
+      ...form,
+      merchant: $Enums.Merchant.GrabFood,
+      method: $Enums.PaymentMethod.QRIS,
+    });
+  }, []);
 
   const Loading = () => <LoadingData loading={loading} />;
 
@@ -384,7 +377,6 @@ const useCashier = (businessId: string) => {
 
   const dataCheckout = {
     ...form,
-    businessId,
     orderItems: selectedProducts.map((item) => ({
       ...item,
       productId: item.id,
