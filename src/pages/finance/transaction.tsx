@@ -6,6 +6,7 @@ import { Api } from "@/models/response";
 import { useEffect, useState } from "react";
 import { Finance } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
+import { ReportFinance } from "@/components/material/report/finance";
 
 const THEAD = ["No", "Transaction", "Type", "Note", "Amount", "Created At", ""];
 
@@ -13,7 +14,7 @@ const FinanceIncomePage = () => {
   const { data, Loading } = useFinance();
 
   return (
-    <DashboardLayout title="Transaction">
+    <DashboardLayout title="Transaction" belowHeader={<ReportFinance />}>
       <div className="relative overflow-x-auto">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50">

@@ -6,6 +6,7 @@ import { Api } from "@/models/response";
 import { useEffect, useState } from "react";
 import { Operational } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
+import { ReportOperational } from "@/components/material/report/operational";
 
 const THEAD = ["No", "Transaction", "Type", "Note", "Amount", "Created At", ""];
 
@@ -13,7 +14,7 @@ const OperationalIncomePage = () => {
   const { data, Loading } = useOperational();
 
   return (
-    <DashboardLayout title="Transaction">
+    <DashboardLayout title="Transaction" belowHeader={<ReportOperational />}>
       <div className="relative overflow-x-auto">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50">

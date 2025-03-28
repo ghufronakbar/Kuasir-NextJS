@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
 import { Operational } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
+import { ReportOperational } from "@/components/material/report/operational";
 
 const THEAD = ["No", "Rent", "Note", "Amount", "Created At", ""];
 
@@ -30,6 +31,7 @@ const RentPage = () => {
   return (
     <DashboardLayout
       title="Rent"
+      belowHeader={<ReportOperational />}
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -69,7 +71,7 @@ const RentPage = () => {
                     <input
                       value={form.description}
                       onChange={(e) => onChange(e, "description")}
-                      placeholder="Car"                      
+                      placeholder="Car"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                     />
                     <Label className="mt-2 font-medium">Amount</Label>

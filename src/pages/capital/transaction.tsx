@@ -6,6 +6,7 @@ import { Api } from "@/models/response";
 import { useEffect, useState } from "react";
 import { Capital } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
+import { ReportCapital } from "@/components/material/report/capital";
 
 const THEAD = ["No", "Transaction", "Type", "Note", "Amount", "Created At", ""];
 
@@ -13,7 +14,7 @@ const CapitalIncomePage = () => {
   const { data, Loading } = useCapital();
 
   return (
-    <DashboardLayout title="Transaction">
+    <DashboardLayout title="Transaction" belowHeader={<ReportCapital />}>
       <div className="relative overflow-x-auto">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50">

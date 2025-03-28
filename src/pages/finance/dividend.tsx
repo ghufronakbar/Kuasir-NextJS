@@ -11,6 +11,7 @@ import { makeToast } from "@/helper/makeToast";
 import { Finance } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
 import { DetailUser } from "@/models/schema";
+import { ReportFinance } from "@/components/material/report/finance";
 
 const THEAD = ["No", "Recipient", "Note", "Amount", "Created At", ""];
 
@@ -32,6 +33,7 @@ const DividendPage = () => {
   return (
     <DashboardLayout
       title="Dividend"
+      belowHeader={<ReportFinance />}
       childrenHeader={
         <Dialog.Root
           size="sm"

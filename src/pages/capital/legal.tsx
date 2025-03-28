@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
 import { Capital } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
+import { ReportCapital } from "@/components/material/report/capital";
 
 const THEAD = ["No", "Legal", "Note", "Amount", "Created At", ""];
 
@@ -30,6 +31,7 @@ const LegalPage = () => {
   return (
     <DashboardLayout
       title="Legal"
+      belowHeader={<ReportCapital />}
       childrenHeader={
         <Dialog.Root
           size="sm"

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
 import { Operational } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
+import { ReportOperational } from "@/components/material/report/operational";
 
 const THEAD = ["No", "Utility", "Note", "Amount", "Created At", ""];
 
@@ -31,6 +32,7 @@ const UtilityPage = () => {
   return (
     <DashboardLayout
       title="Utility"
+      belowHeader={<ReportOperational />}
       childrenHeader={
         <Dialog.Root
           size="sm"

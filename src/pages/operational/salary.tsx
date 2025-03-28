@@ -11,6 +11,7 @@ import { makeToast } from "@/helper/makeToast";
 import { Operational } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
 import { DetailUser } from "@/models/schema";
+import { ReportOperational } from "@/components/material/report/operational";
 
 const THEAD = ["No", "Recipient", "Note", "Amount", "Created At", ""];
 
@@ -32,6 +33,7 @@ const SalaryPage = () => {
   return (
     <DashboardLayout
       title="Salary"
+      belowHeader={<ReportOperational />}
       childrenHeader={
         <Dialog.Root
           size="sm"
