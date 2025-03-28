@@ -7,22 +7,34 @@ import Image from "next/image";
 import { DEFAULT_PROFILE, LOGO } from "@/constants/image";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  FaBox,
   FaClipboardList,
   FaCogs,
+  FaHeadset,
   FaHeartBroken,
   FaHome,
   FaMoneyBillWave,
+  FaProductHunt,
   FaShoppingCart,
   FaSignOutAlt,
   FaUser,
 } from "react-icons/fa";
-import { IoFastFoodSharp } from "react-icons/io5";
-import { SiGoogleanalytics } from "react-icons/si";
-import { RiExchangeDollarLine } from "react-icons/ri";
-import { GiExpense, GiRawEgg } from "react-icons/gi";
-import { MdHistory } from "react-icons/md";
+import {
+  IoFastFoodSharp,
+  IoHomeOutline,
+  IoNewspaperOutline,
+} from "react-icons/io5";
+import { SiDailymotion, SiGoogleanalytics } from "react-icons/si";
+import { CiBank } from "react-icons/ci";
+import {
+  GiArchiveResearch,
+  GiExpense,
+  GiProfit,
+  GiRawEgg,
+} from "react-icons/gi";
+import { MdCarRental, MdHistory, MdOutlinePayments } from "react-icons/md";
 import { $Enums } from "@prisma/client";
+import { FaChartColumn, FaGears } from "react-icons/fa6";
+import { TbAsset, TbEyeDollar } from "react-icons/tb";
 
 const iconClassName = "text-neutral-700 h-5 w-5 flex-shrink-0";
 
@@ -40,11 +52,11 @@ const links: LinkProps[] = [
     ],
   },
   {
-    label: "Master Data",
-    icon: <FaBox className={iconClassName} />, // Add icon for this section
+    label: "Product",
+    icon: <FaProductHunt className={iconClassName} />,
     items: [
       {
-        label: "Product Menu",
+        label: "Menu",
         href: "/product",
         icon: <IoFastFoodSharp className={iconClassName} />,
         roles: ["OWNER"],
@@ -89,13 +101,97 @@ const links: LinkProps[] = [
     ],
   },
   {
-    label: "CAPEX",
-    icon: <FaMoneyBillWave className={iconClassName} />, // Add icon for this section
+    label: "Operational",
+    icon: <SiDailymotion className={iconClassName} />,
     items: [
       {
-        label: "Transactions",
-        href: "/transaction",
-        icon: <RiExchangeDollarLine className={iconClassName} />,
+        label: "Salary",
+        href: "/salary",
+        icon: <MdOutlinePayments className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Rent",
+        href: "/rent",
+        icon: <MdCarRental className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Utilities",
+        href: "/utilities",
+        icon: <FaGears className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Marketing",
+        href: "/marketing",
+        icon: <FaHeadset className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Income",
+        href: "/operational-income",
+        icon: <FaMoneyBillWave className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+    ],
+  },
+  {
+    label: "Capex",
+    icon: <TbAsset className={iconClassName} />,
+    items: [
+      {
+        label: "Asset",
+        href: "/asset",
+        icon: <IoHomeOutline className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "RnD",
+        href: "/rnd",
+        icon: <GiArchiveResearch className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Legal",
+        href: "/legal",
+        icon: <IoNewspaperOutline className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Income",
+        href: "/capex-income",
+        icon: <FaMoneyBillWave className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+    ],
+  },
+  {
+    label: "Financing",
+    icon: <TbEyeDollar className={iconClassName} />,
+    items: [
+      {
+        label: "Loan",
+        href: "/loan",
+        icon: <CiBank className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Investment",
+        href: "/investment",
+        icon: <FaChartColumn className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Dividend",
+        href: "/dividend",
+        icon: <GiProfit className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Income",
+        href: "/dividend-income",
+        icon: <FaMoneyBillWave className={iconClassName} />,
         roles: ["OWNER"],
       },
     ],
