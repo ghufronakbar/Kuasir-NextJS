@@ -10,6 +10,7 @@ import { PLACEHOLDER } from "@/constants/image";
 import { DetailOrderByDate } from "@/models/schema";
 import formatRupiah from "@/helper/formatRupiah";
 import { useBusiness } from "@/hooks/useBusiness";
+import { makeToast } from "@/helper/makeToast";
 
 const OrdersPage = () => {
   const {
@@ -17,7 +18,7 @@ const OrdersPage = () => {
     selectedBusiness,
     onChange: onChangeB,
   } = useBusiness();
-  const { data, Loading } = useOrders(selectedBusiness);
+  const { data, Loading, deleteOrder } = useOrders(selectedBusiness);
   return (
     <DashboardLayout
       title="Orders"
@@ -49,9 +50,15 @@ const OrdersPage = () => {
                 key={order.id}
                 className="w-full bg-gray-100 flex flex-col px-2 py-4 gap-2 border-b"
               >
-                <h2 className="font-semibold w-full bg-slate-200 px-2 py-1">
-                  Order Id: #{order.id}
-                </h2>
+                <div className="w-full flex flex-row justify-between items-center flex-wrap gap-2 font-semibold bg-slate-200 px-2 py-2">
+                  <p>Order Id: #{order.id}</p>
+                  <button
+                    className="bg-red-500 px-2 py-1 text-white rounded-md cursor-pointer"
+                    onClick={() => deleteOrder(order.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
                 <div className="w-full font-medium text-lg flex flex-col lg:flex-row gap-2">
                   <div className="relative overflow-x-auto w-full lg:w-1/2">
                     <table className="w-full text-sm text-left rtl:text-right text-gray-500">
@@ -183,6 +190,21 @@ const useOrders = (businessId: string) => {
     }
   }, [businessId]);
 
+  const deleteOrder = async (id: string) => {
+    try {
+      makeToast("info", "Deleting...");
+      const confirmDel = window.confirm(
+        "Are you sure you want to delete this data?"
+      );
+      if (!confirmDel) return;
+      const res = await api.delete(`/order/${id}`);
+      await fetching();
+      makeToast("success", res?.data?.message);
+    } catch (error) {
+      makeToast("error", error);
+    }
+  };
+
   const Loading = () => <LoadingData loading={loading} />;
 
   return {
@@ -190,5 +212,6 @@ const useOrders = (businessId: string) => {
     Loading,
     open,
     setOpen,
+    deleteOrder,
   };
 };

@@ -44,11 +44,7 @@ export const SyncButton = () => {
       className="fixed bottom-10 right-10 w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white cursor-pointer text-xl"
       onClick={handleSync}
     >
-      {isLoading ? (
-        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-      ) : (
-        <MdSync />
-      )}
+      <MdSync className={isLoading ? "animate-spin cursor-wait" : ""} />
     </div>
   );
 };

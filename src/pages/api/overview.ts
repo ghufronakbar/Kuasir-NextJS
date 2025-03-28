@@ -1,6 +1,6 @@
 import { db } from "@/config/db";
 import formatDate from "@/helper/formatDate";
-import { DetailOrder } from "@/models/schema";
+import { DetailOrder, DetailProduct } from "@/models/schema";
 import { Outcome, Product } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -413,7 +413,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         _count: "desc",
       },
     },
-    include: {
+    select: {
+      id: true,
+      image: true,
+      name: true,
+      price: true,
       _count: {
         select: {
           orderItems: true,
@@ -469,19 +473,34 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         _count: "asc",
       },
     },
+    select: {
+      id: true,
+      image: true,
+      name: true,
+      price: true,
+      _count: {
+        select: {
+          orderItems: true,
+        },
+      },
+    },
   });
 
   const orders = await db.order.findMany({
     orderBy: {
       createdAt: "desc",
     },
-    include: {
+    select: {
       orderItems: {
         orderBy: {
           createdAt: "desc",
         },
-        include: {
-          product: true,
+        select: {
+          product: {
+            select: {
+              price: true,
+            }
+          }
         },
       },
     },
@@ -578,8 +597,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       { ...weeklyData, name: "Weekly" },
     ],
     analyticOrder: {
-      bestSeller: bestProduct[0],
-      worstSeller: worstProduct!,
+      bestSeller: bestProduct[0] as DetailProduct,
+      worstSeller: worstProduct! as DetailProduct,
     },
     financeByTransaction: {
       totalIncome: totalIncomeByTrans,
@@ -595,7 +614,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       chartMonthly: monthlyChart,
       chartAnnualy: annualChart,
       chartWeekly: weeklyChart,
-      topProduct: bestProduct,
+      topProduct: bestProduct as DetailProduct[],
     },
   };
 

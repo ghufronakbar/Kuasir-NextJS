@@ -2,6 +2,7 @@ import { db } from "@/config/db";
 import formatDate from "@/helper/formatDate";
 import AuthApi from "@/middleware/auth-api";
 import { DetailOrder, DetailOrderByDate } from "@/models/schema";
+import { saveToLog } from "@/services/server/saveToLog";
 import { sync } from "@/services/server/sync";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
@@ -75,7 +76,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { body, decoded } = req;
+    const { body } = req;
     const { merchant, method, businessId, orderItems } = body;
 
     if (!merchant || !method || !businessId)
@@ -169,23 +170,8 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
+    await saveToLog(req, "Order", order);
     await sync();
-
-    await db.logActivity.create({
-      data: {
-        referenceId: order.id,
-        referenceModel: "Order",
-        userId: user?.id || "",
-        description: `${user?.name} update order ${order.id}`,
-        type: "CREATE",
-        detail: order,
-      },
-    });
 
     return res
       .status(200)
