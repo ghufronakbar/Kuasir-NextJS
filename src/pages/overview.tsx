@@ -9,13 +9,25 @@ import { api } from "@/config/api";
 import { Api } from "@/models/response";
 import { DetailProduct } from "@/models/schema";
 import { FaChartLine } from "react-icons/fa";
-import { MdBusiness } from "react-icons/md";
+import { MdBusiness, MdCalculate, MdSync } from "react-icons/md";
 import { LoadingPage } from "@/components/material/loading-page";
 import { useBusiness } from "@/hooks/useBusiness";
 
 const OverviewPage = () => {
   const { data: business, onChange, selectedBusiness, Loading } = useBusiness();
   const { data } = useOverview(selectedBusiness);
+  const {
+    calc,
+    fetching,
+    form,
+    onChange: onChangePS,
+    open,
+    setOpen,
+    onClose,
+    handleSubmit,
+    information,
+    loading,
+  } = useProfitSharing();
   return (
     <DashboardLayout
       title="Overview"
@@ -31,6 +43,122 @@ const OverviewPage = () => {
             </option>
           ))}
         </select>
+      }
+      childrenHeader={
+        <Dialog.Root
+          size="lg"
+          placement="center"
+          motionPreset="slide-in-bottom"
+          lazyMount
+          open={open}
+          onOpenChange={(e) => setOpen(e.open)}
+          onExitComplete={onClose}
+        >
+          <Dialog.Trigger asChild>
+            <Button className="bg-teal-500 px-2 text-white">
+              <MdCalculate /> Open Calculator
+            </Button>
+          </Dialog.Trigger>
+          <Portal>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Content>
+                <Dialog.Header>
+                  <Dialog.Title className="font-semibold">
+                    Profit Sharing
+                  </Dialog.Title>
+                  <Dialog.CloseTrigger asChild>
+                    <CloseButton size="sm" />
+                  </Dialog.CloseTrigger>
+                </Dialog.Header>
+                <Dialog.Body>
+                  <form
+                    className="flex flex-col gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSubmit();
+                    }}
+                  >
+                    <Label className="mt-2 font-medium">Percentage (%)</Label>
+                    <input
+                      value={form.percentage}
+                      onChange={(e) => onChangePS(e, "percentage")}
+                      placeholder="30"
+                      type="number"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
+                    <Label className="mt-2 font-medium">Person</Label>
+                    <input
+                      value={form.person}
+                      onChange={(e) => onChangePS(e, "person")}
+                      placeholder="3"
+                      type="number"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
+
+                    <div className="mt-2">
+                      <p>Maximal Disbursable Balance</p>
+                      <p>{formatRupiah(information?.disbursableBalance)}</p>
+                    </div>
+
+                    <div className="w-full justify-around items-center flex flex-row flex-wrap gap-2 mt-4 border border-neutral-300 rounded-md py-4">
+                      <div className="flex flex-col items-center w-[40%] justify-center mb-8">
+                        <p className="">Total</p>
+                        <p className="text-3xl">
+                          {fetching ? (
+                            <MdSync className="animate-spin cursor-wait" />
+                          ) : (
+                            formatRupiah(calc.total)
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-center w-[40%] justify-center mb-8">
+                        <p className="">Remaining</p>
+                        <p className="text-3xl">
+                          {fetching ? (
+                            <MdSync className="animate-spin cursor-wait" />
+                          ) : (
+                            formatRupiah(calc.remaining)
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-center w-[40%]">
+                        <p className="">Percentage Per Person</p>
+                        <p className="text-3xl">
+                          {fetching ? (
+                            <MdSync className="animate-spin cursor-wait" />
+                          ) : (
+                            calc.percentagePerPerson + "%"
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-center w-[40%]">
+                        <p className="">Total Per Person</p>
+                        <p className="text-3xl">
+                          {fetching ? (
+                            <MdSync className="animate-spin cursor-wait" />
+                          ) : (
+                            formatRupiah(calc.totalPerPerson)
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      className="bg-teal-500 font-semibold text-white mt-4"
+                    >
+                      {loading || fetching ? (
+                        <MdSync className="animate-spin cursor-wait" />
+                      ) : (
+                        "Create Dividend"
+                      )}
+                    </Button>
+                  </form>
+                </Dialog.Body>
+              </Dialog.Content>
+            </Dialog.Positioner>
+          </Portal>
+        </Dialog.Root>
       }
     >
       {data ? (
@@ -262,6 +390,14 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
+import { Label } from "@/components/ui/label";
+import { CalculateProfit } from "./api/profit-sharing";
+import useDebounce from "@/hooks/useDebounce";
+import { makeToast } from "@/helper/makeToast";
+import { Information } from "@prisma/client";
+import { sync } from "@/services/server/sync";
+import { useRouter } from "next/router";
 
 interface ChartProps {
   items: ChartData[];
@@ -378,6 +514,117 @@ const GridChart: React.FC<ChartProps> = ({ items }) => {
       </div>
     </div>
   );
+};
+
+interface ProfitSharingDTO {
+  percentage: number;
+  person: number;
+}
+
+const initProfitSharing: ProfitSharingDTO = { percentage: 0, person: 0 };
+const initCalc: CalculateProfit = {
+  percentage: 0,
+  person: 0,
+  percentagePerPerson: 0,
+  totalPerPerson: 0,
+  remaining: 0,
+  total: 0,
+};
+
+const useProfitSharing = () => {
+  const [form, setForm] = useState<ProfitSharingDTO>(initProfitSharing);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [calc, setCalc] = useState<CalculateProfit>(initCalc);
+  const [open, setOpen] = useState(false);
+  const [information, setInformation] = useState<Information | null>(null);
+  const [isError, setIsError] = useState(false);
+  const router = useRouter();
+
+  const onChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    key: keyof ProfitSharingDTO
+  ) => {
+    setForm({ ...form, [key]: e.target.value });
+    setFetching(true);
+  };
+
+  const fetchInformation = async () => {
+    try {
+      const res = await api.get<Api<Information>>("/information");
+      setInformation(res.data.data);
+    } catch (error) {
+      makeToast("error", error);
+    }
+  };
+
+  useEffect(() => {
+    if (information === null) {
+      fetchInformation();
+    }
+  }, [information]);
+
+  const fetchData = async () => {
+    try {
+      const res = await api.get<Api<CalculateProfit>>("/profit-sharing", {
+        params: form,
+      });
+      setCalc(res.data.data);
+      setIsError(false);
+    } catch (error) {
+      makeToast("error", error);
+      setIsError(true);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  useDebounce(
+    () => {
+      if (Number(form.percentage) > 0 && Number(form.person) > 0) {
+        fetchData();
+      } else {
+        setFetching(false);
+        setCalc(initCalc);
+      }
+    },
+    500,
+    [form]
+  );
+
+  const handleSubmit = async () => {
+    try {
+      if (loading || fetching || isError) return;
+      setLoading(true);
+      const res = await api.post<Api>("/profit-sharing", form);
+      makeToast("success", res.data.message);
+      onClose();
+      await sync();
+      router.reload();
+    } catch (error) {
+      makeToast("error", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onClose = () => {
+    setForm(initProfitSharing);
+    setOpen(false);
+  };
+
+  return {
+    form,
+    handleSubmit,
+    calc,
+    onChange,
+    fetching,
+    open,
+    setOpen,
+    onClose,
+    information,
+    loading,
+  };
 };
 
 export default OverviewPage;

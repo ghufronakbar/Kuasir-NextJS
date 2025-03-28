@@ -269,3 +269,17 @@ enum LogType {
   UPDATE
   DELETE
 }
+
+model Information {
+  id                 String @id @default(uuid())
+  totalBalance       Float  @default(0) // total dari order - outcome + transaction
+  orderBalance       Float  @default(0) // dari penjualan
+  transactionBalance Float  @default(0) // dari transaksi seperti loan, investment, operational
+  outcomeBalance     Float  @default(0) // dari pembelian stock
+  disbursableBalance Float  @default(0)
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}

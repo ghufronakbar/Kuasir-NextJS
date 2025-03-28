@@ -1,6 +1,7 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
 import { saveToLog } from "@/services/server/saveToLog";
+import { sync } from "@/services/server/sync";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -57,6 +58,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
+    await sync();
     await saveToLog(req, "Transaction", transaction);
 
     return res.status(200).json({
@@ -90,6 +92,7 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
+    await sync();
     await saveToLog(req, "Transaction", transaction);
 
     return res.status(200).json({

@@ -144,7 +144,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         checkProductId.find((product) => product.id === item.productId)
           ?.price || 0 * item.amount;
 
-      total += item.price;
+      total += item.price * item.amount;
     }
 
     const order = await db.order.create({

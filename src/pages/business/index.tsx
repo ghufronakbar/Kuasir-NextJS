@@ -82,6 +82,7 @@ const BusinessPage = () => {
                       value={form.parentBusiness}
                       onChange={(e) => onChange(e, "parentBusiness")}
                     >
+                      <option value="">Select Parent Business</option>
                       {parents.map((item) => (
                         <option key={item} value={item}>
                           {item}

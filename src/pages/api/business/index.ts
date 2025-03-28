@@ -29,7 +29,6 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
   });
 
   const data: typeof business = [
-    ...business,
     {
       name: "All",
       id: "-",
@@ -46,6 +45,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
       updatedAt: new Date(),
       orders: [],
     },
+    ...business,
   ];
 
   return res.status(200).json({ message: "OK", data: data });

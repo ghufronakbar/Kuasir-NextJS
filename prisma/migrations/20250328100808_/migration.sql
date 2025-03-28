@@ -1,0 +1,13 @@
+-- CreateTable
+CREATE TABLE "Information" (
+    "id" TEXT NOT NULL,
+    "totalBalance" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "orderBalance" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "transactionBalance" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "outcomeBalance" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Information_pkey" PRIMARY KEY ("id")
+);

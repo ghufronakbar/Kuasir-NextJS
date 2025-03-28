@@ -96,7 +96,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     await sync();
-    await saveToLog(req, "Outcome", outcome.id);
+    await saveToLog(req, "Outcome", outcome);
 
     return res
       .status(200)

@@ -178,7 +178,7 @@ const TransactionPage = () => {
                 <td className="px-6 py-4">{item.category}</td>
                 <td className="px-6 py-4">{item.type}</td>
                 <td className="px-6 py-4">
-                  {formatDate(item.createdAt, true)}
+                  {formatDate(item.createdAt, true, true)}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex flex-row gap-2 font-medium">

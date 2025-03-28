@@ -491,6 +491,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       createdAt: "desc",
     },
     select: {
+      total: true,
       orderItems: {
         orderBy: {
           createdAt: "desc",
@@ -499,8 +500,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           product: {
             select: {
               price: true,
-            }
-          }
+            },
+          },
         },
       },
     },
@@ -563,9 +564,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   let totalExpenseByOrder = 0;
 
   for (const order of orders) {
-    for (const orderItem of order.orderItems) {
-      totalIncomeByOrder += orderItem.product.price;
-    }
+    totalIncomeByOrder += order.total;    
   }
 
   for (const outcome of outcomes) {
