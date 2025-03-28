@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -42,7 +43,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded, body } = req;
+    const { body } = req;
     const { name } = body;
     if (!name || typeof name !== "string")
       return res.status(400).json({ message: "All fields are required" });
@@ -82,29 +83,20 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       where: {
         id,
       },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
+      include: {
+        businesses: {
+          where: {
+            isDeleted: false,
+          },
+        },
       },
     });
 
-    const create = await db.logActivity.create({
-      data: {
-        referenceId: pb.id,
-        referenceModel: "ParentBusiness",
-        userId: decoded?.id || "",
-        type: "UPDATE",
-        description: `${user?.name} edit parent business ${checkId.name} to ${pb.name}`,
-        detail: pb,
-        before: checkId,
-      },
-    });
+    await saveToLog(req, "ParentBusiness", pb);
 
     return res
       .status(200)
-      .json({ message: "Successfull edit parent business", data: create });
+      .json({ message: "Successfull edit parent business", data: pb });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -113,20 +105,14 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded } = req;
     const id = (req.query.id as string) || "";
     const check = await db.parentBusiness.findUnique({
       where: {
         id,
       },
     });
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
 
-    if (!check || !user) {
+    if (!check) {
       return res.status(400).json({ message: "Parent business not found" });
     }
 
@@ -137,18 +123,16 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       data: {
         isDeleted: true,
       },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: business.id,
-        referenceModel: "ParentBusiness",
-        userId: (req.query.id as string) || "",
-        type: "DELETE",
-        description: `${user.name} delete parent business ${check.name}`,
-        detail: business,
+      include: {
+        businesses: {
+          where: {
+            isDeleted: false,
+          },
+        },
       },
     });
+
+    await saveToLog(req, "ParentBusiness", business);
 
     return res.status(200).json({
       message: "Successfull delete parent business",

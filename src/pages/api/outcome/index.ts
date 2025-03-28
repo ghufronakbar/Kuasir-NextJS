@@ -1,5 +1,7 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
+import { sync } from "@/services/server/sync";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -26,7 +28,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded, body } = req;
+    const { body } = req;
     const {
       amount,
       price,
@@ -35,6 +37,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       category,
       description,
       businessId,
+      adminFee,
     } = body;
     if (
       !amount ||
@@ -81,6 +84,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         category,
         description,
         businessId,
+        adminFee: adminFee ? Number(adminFee) : 0,
       },
       include: {
         stock: {
@@ -91,53 +95,8 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const stock = await db.stock.update({
-      where: {
-        id: stockId,
-      },
-      data: {
-        quantity: checkStock.quantity + Number(amount),
-      },
-      include: {
-        outcomes: true,
-      },
-    });
-
-    let totalPrice = 0;
-    let totalAmount = 0;
-
-    for (const outcome of stock.outcomes) {
-      totalPrice += outcome.price;
-      totalAmount += outcome.amount;
-    }
-
-    const averagePrice = totalPrice / totalAmount || 0;
-
-    await db.stock.update({
-      where: {
-        id: stockId,
-      },
-      data: {
-        averagePrice,
-      },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: outcome.id,
-        referenceModel: "Outcome",
-        userId: decoded?.id || "",
-        type: "CREATE",
-        description: `${user?.name} create outcome Rp. ${outcome.price} for ${outcome.amount} ${checkStock.name}`,
-        detail: outcome,
-      },
-    });
+    await sync();
+    await saveToLog(req, "Outcome", outcome.id);
 
     return res
       .status(200)

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Outcome" ADD COLUMN     "adminFee" DOUBLE PRECISION NOT NULL DEFAULT 0;

@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -25,7 +26,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded, body } = req;
+    const { body } = req;
     const { name, price, description, image, productCategory, businessId } =
       body;
     if (
@@ -84,24 +85,12 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         productCategoryId: productCategoryId || "",
         businessId,
       },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
+      include: {
+        business: true,
+        productCategory: true,
       },
     });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: product.id,
-        referenceModel: "Product",
-        userId: decoded?.id || "",
-        type: "CREATE",
-        description: `${user?.name} create product ${product.name}`,
-        detail: product,
-      },
-    });
+    await saveToLog(req, "Product", product);
 
     return res
       .status(200)

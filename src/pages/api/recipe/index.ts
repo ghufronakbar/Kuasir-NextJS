@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { sync } from "@/services/server/sync";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -92,20 +93,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    let cogs = 0;
-
-    for (const r of checkProduct.recipes) {
-      cogs += r.stock.averagePrice * r.amount;
-    }
-
-    await db.product.update({
-      where: {
-        id: recipe.productId,
-      },
-      data: {
-        cogs: cogs,
-      },
-    });
+    await sync();
 
     const user = await db.user.findUnique({
       where: {

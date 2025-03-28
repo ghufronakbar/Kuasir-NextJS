@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -22,7 +23,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded, body } = req;
+    const { body } = req;
     const { title, amount, description, category } = body;
     if (!title || typeof title !== "string" || !amount || isNaN(Number(amount)))
       return res.status(400).json({ message: "All fields are required" });
@@ -51,24 +52,12 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       where: {
         id,
       },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
+      include: {
+        business: true,
       },
     });
 
-    await db.logActivity.create({
-      data: {
-        referenceId: transaction.id,
-        referenceModel: "Transaction",
-        userId: decoded?.id || "",
-        type: "UPDATE",
-        description: `${user?.name} update ${check.type} transaction ${check.title} with amount ${check.amount} to ${transaction.title} with amount ${transaction.amount}`,
-        detail: transaction,
-      },
-    });
+    await saveToLog(req, "Transaction", transaction);
 
     return res.status(200).json({
       message: "Successfull edit transaction",
@@ -82,20 +71,14 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded } = req;
     const id = (req.query.id as string) || "";
     const check = await db.transaction.findUnique({
       where: {
         id,
       },
     });
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
 
-    if (!check || !user)
+    if (!check)
       return res.status(400).json({ message: "Transaction not found" });
 
     const transaction = await db.transaction.update({
@@ -107,17 +90,7 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    await db.logActivity.create({
-      data: {
-        referenceId: transaction.id,
-        referenceModel: "Transaction",
-        userId: decoded?.id || "",
-        type: "DELETE",
-        description: `${user?.name} delete ${check.type} transaction ${check.title} with amount ${check.amount}`,
-        detail: transaction,
-        before: check,
-      },
-    });
+    await saveToLog(req, "Transaction", transaction);
 
     return res.status(200).json({
       message: "Successfull delete transaction",

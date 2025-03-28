@@ -1,5 +1,7 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
+import { sync } from "@/services/server/sync";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -27,7 +29,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded, body } = req;
+    const { body } = req;
     const { name, image, unit } = body;
     if (!name || typeof name !== "string" || !unit || typeof unit !== "string")
       return res.status(400).json({ message: "All fields are required" });
@@ -66,27 +68,8 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         id,
       },
     });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-      select: {
-        name: true,
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: stock.id,
-        referenceModel: "Stock",
-        userId: decoded?.id || "",
-        type: "UPDATE",
-        description: `${user?.name} edit stock ${checkId.name} to ${stock.name}`,
-        detail: stock,
-        before: checkId,
-      },
-    });
+    await sync();
+    await saveToLog(req, "Stock", stock);
 
     return res
       .status(200)
@@ -99,7 +82,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   const id = (req.query.id as string) || "";
-  const { decoded } = req;
+
   const stock = await db.stock.findUnique({
     where: {
       id,
@@ -119,25 +102,8 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  const user = await db.user.findUnique({
-    where: {
-      id: decoded?.id || "",
-    },
-    select: {
-      name: true,
-    },
-  });
-
-  await db.logActivity.create({
-    data: {
-      referenceId: stock.id,
-      referenceModel: "Stock",
-      userId: decoded?.id || "",
-      type: "DELETE",
-      description: `${user?.name} delete stock ${stock.name}`,
-      detail: stock,
-    },
-  });
+  await sync();
+  await saveToLog(req, "Stock", ress);
 
   return res
     .status(200)

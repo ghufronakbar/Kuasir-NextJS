@@ -40,7 +40,6 @@ const DetailProductPage = () => {
     confirmDelete,
     stocks,
     onClickDetail,
-    cogs,
   } = useProduct();
 
   if (!data) return <LoadingPage />;
@@ -227,7 +226,7 @@ const DetailProductPage = () => {
                 >
                   COGS
                 </th>
-                <td className="px-6 py-4">{formatRupiah(cogs)}</td>
+                <td className="px-6 py-4">{formatRupiah(data.cogs)}</td>
               </tr>
               <tr className="bg-white border-b  border-gray-200">
                 <th
@@ -405,9 +404,6 @@ const useProduct = () => {
     }
   };
 
-  const cogs =
-    data?.recipes.reduce((total, item) => total + item.price, 0) || 0;
-
   return {
     data,
     Loading,
@@ -422,6 +418,5 @@ const useProduct = () => {
     confirmDelete,
     stocks,
     onClickDetail,
-    cogs,
   };
 };

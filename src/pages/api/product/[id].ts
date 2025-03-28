@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -31,7 +32,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded, body } = req;
+    const { body } = req;
     const { name, price, description, image, productCategory, businessId } =
       body;
     if (
@@ -102,25 +103,13 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         productCategoryId,
         businessId,
       },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
+      include: {
+        business: true,
+        productCategory: true,
       },
     });
 
-    await db.logActivity.create({
-      data: {
-        referenceId: product.id,
-        referenceModel: "Product",
-        userId: decoded?.id || "",
-        type: "UPDATE",
-        description: `${user?.name} edit product ${checkId.name} to ${product.name}`,
-        detail: product,
-        before: checkId,
-      },
-    });
+    await saveToLog(req, "Product", product);
 
     return res
       .status(200)
@@ -149,24 +138,13 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       data: {
         isDeleted: true,
       },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: req.decoded?.id || "",
+      include: {
+        business: true,
+        productCategory: true,
       },
     });
 
-    await db.logActivity.create({
-      data: {
-        referenceId: product.id,
-        referenceModel: "Product",
-        userId: req.decoded?.id || "",
-        type: "DELETE",
-        description: `${user?.name} delete product ${product.name}`,
-        detail: updatedProduct,
-      },
-    });
+    await saveToLog(req, "Product", updatedProduct);
 
     return res
       .status(200)

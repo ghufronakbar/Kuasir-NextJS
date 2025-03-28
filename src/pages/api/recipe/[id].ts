@@ -1,5 +1,7 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
+import { sync } from "@/services/server/sync";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -24,7 +26,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded, body } = req;
+    const { body } = req;
     const { amount, stockId, productId } = body;
     if (!amount || isNaN(Number(amount))) {
       return res.status(400).json({ message: "All fields are required" });
@@ -109,38 +111,9 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    let cogs = 0;
+    await sync();
 
-    for (const r of checkProduct.recipes) {
-      cogs += r.stock.averagePrice * r.amount;
-    }
-
-    await db.product.update({
-      where: {
-        id: recipe.productId,
-      },
-      data: {
-        cogs: cogs,
-      },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: recipe.id,
-        referenceModel: "Recipe",
-        userId: decoded?.id || "",
-        type: "UPDATE",
-        description: `${user?.name} edit recipe for ${recipe.product.name}`,
-        detail: recipe,
-        before: checkId,
-      },
-    });
+    await saveToLog(req, "Recipe", id);
 
     return res
       .status(200)
@@ -154,7 +127,6 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
 const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded } = req;
     const recipe = await db.recipe.findUnique({
       where: {
         id,
@@ -176,22 +148,8 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: recipe.id,
-        referenceModel: "Recipe",
-        userId: decoded?.id || "",
-        type: "DELETE",
-        description: `${user?.name} delete recipe ${recipe.stock.name} for ${recipe.product.name}`,
-        detail: recipe,
-      },
-    });
+    await sync();
+    await saveToLog(req, "Recipe", id);
 
     return res
       .status(200)

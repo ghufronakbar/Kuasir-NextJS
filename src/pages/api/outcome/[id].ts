@@ -1,5 +1,7 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
+import { sync } from "@/services/server/sync";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -20,8 +22,9 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded, body } = req;
-    const { amount, price, method, stockId, category, businessId } = body;
+    const { body } = req;
+    const { amount, price, method, stockId, category, businessId, adminFee } =
+      body;
     if (
       !amount ||
       isNaN(Number(amount)) ||
@@ -80,55 +83,18 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         method: method as $Enums.PaymentMethod,
         stockId: stockId,
         category: category,
+        adminFee: Number(adminFee),
       },
       where: {
         id,
       },
-    });
-
-    const gapQuantity = checkId.amount - Number(amount);
-    const newQuantity = checkStock.quantity - gapQuantity;
-
-    let totalPrice = 0;
-    let totalAmount = 0;
-
-    for (const outcome of checkStock.outcomes) {
-      totalPrice += outcome.price;
-      totalAmount += outcome.amount;
-    }
-
-    const averagePrice = totalPrice / totalAmount || 0;
-
-    await db.stock.update({
-      where: {
-        id: stockId,
-      },
-      data: {
-        quantity: newQuantity,
-        averagePrice,
-      },
       include: {
-        outcomes: true,
+        stock: true,
       },
     });
 
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: outcome.id,
-        referenceModel: "Outcome",
-        userId: decoded?.id || "",
-        type: "UPDATE",
-        description: `${user?.name} edit outcome Rp. ${checkId.price} for ${checkId.amount} ${checkId?.stock.name} to Rp. ${outcome.price} for ${outcome.amount} ${checkStock.name}`,
-        detail: outcome,
-        before: checkId,
-      },
-    });
+    await sync();
+    await saveToLog(req, "Outcome", outcome);
 
     return res
       .status(200)
@@ -141,16 +107,10 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded } = req;
     const id = (req.query.id as string) || "";
     const check = await db.outcome.findUnique({
       where: {
         id,
-      },
-    });
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
       },
     });
 
@@ -158,7 +118,7 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(400).json({ message: "Outcome not found" });
     }
 
-    const outcome = await db.outcome.update({
+    const updated = await db.outcome.update({
       data: {
         isDeleted: true,
       },
@@ -170,16 +130,8 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    await db.logActivity.create({
-      data: {
-        referenceId: outcome.id,
-        referenceModel: "Outcome",
-        userId: decoded?.id || "",
-        type: "DELETE",
-        description: `${user?.name} delete outcome Rp. ${check.price} for ${check.amount} ${outcome.stock.name}`,
-        detail: outcome,
-      },
-    });
+    await sync();
+    await saveToLog(req, "Outcome", updated);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });

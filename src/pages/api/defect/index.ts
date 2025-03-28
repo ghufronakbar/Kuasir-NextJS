@@ -1,5 +1,7 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
+import { sync } from "@/services/server/sync";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -19,8 +21,8 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 };
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
-  const { decoded, body } = req;
-  const { amount, reason, stockId } = body;  
+  const { body } = req;
+  const { amount, reason, stockId } = body;
 
   if (!amount || !reason || !stockId || isNaN(Number(amount)))
     return res.status(400).json({ message: "All fields are required" });
@@ -45,33 +47,8 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  const newAmount = stock.quantity - Number(amount);
-
-  await db.stock.update({
-    where: {
-      id: stockId,
-    },
-    data: {
-      quantity: newAmount,
-    },
-  });
-
-  const user = await db.user.findUnique({
-    where: {
-      id: decoded?.id || "",
-    },
-  });
-
-  await db.logActivity.create({
-    data: {
-      referenceId: defect?.id,
-      type: "CREATE",
-      description: `${user?.name} create a new defect with amount ${defect?.amount} and reason ${defect?.reason} for stock ${stock.name} with id ${stock.id}.`,
-      referenceModel: "Defect",
-      detail: defect,
-      userId: user?.id || "",
-    },
-  });
+  await sync();
+  await saveToLog(req, "Defect", defect.id);
 
   return res.status(200).json({ message: "Success to create", data: defect });
 };

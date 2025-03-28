@@ -14,8 +14,17 @@ import { LoadingData } from "@/components/material/loading-data";
 import { PLACEHOLDER } from "@/constants/image";
 import { UploadImage } from "@/components/material/upload-image";
 import { useAuth } from "@/hooks/useAuth";
+import formatRupiah from "@/helper/formatRupiah";
 
-const THEAD = ["No", "", "Name", "Current Stock", "Created At", ""];
+const THEAD = [
+  "No",
+  "",
+  "Name",
+  "Current Stock",
+  "Average Price",
+  "Created At",
+  "",
+];
 
 const StockPage = () => {
   const {
@@ -81,7 +90,7 @@ const StockPage = () => {
                     <input
                       value={form.name}
                       onChange={(e) => onChange(e, "name")}
-                      placeholder="Haykatuju"
+                      placeholder="Daging"
                       type="text"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                     />
@@ -91,6 +100,7 @@ const StockPage = () => {
                       value={form.unit}
                       onChange={(e) => onChange(e, "unit")}
                     >
+                      <option value="">Select Unit</option>
                       {units.map((item) => (
                         <option key={item} value={item}>
                           {item}
@@ -148,6 +158,9 @@ const StockPage = () => {
                 </th>
                 <td className="px-6 py-4">
                   {item.quantity} {item.unit}
+                </td>
+                <td className="px-6 py-4">
+                  {formatRupiah(item.averagePrice)}
                 </td>
                 <td className="px-6 py-4">
                   {formatDate(item.createdAt, true, true)}

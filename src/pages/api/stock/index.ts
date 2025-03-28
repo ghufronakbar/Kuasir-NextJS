@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -24,7 +25,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded, body } = req;
+    const { body } = req;
     const { name, image, unit } = body;
     if (!name || typeof name !== "string" || !unit || typeof unit !== "string")
       return res.status(400).json({ message: "All fields are required" });
@@ -51,22 +52,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: stock.id,
-        referenceModel: "Stock",
-        userId: decoded?.id || "",
-        type: "CREATE",
-        description: `${user?.name} create stock ${stock.name}`,
-        detail: stock,
-      },
-    });
+    await saveToLog(req, "Stock", stock);
 
     return res
       .status(200)

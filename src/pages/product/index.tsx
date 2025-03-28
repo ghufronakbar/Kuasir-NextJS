@@ -112,6 +112,7 @@ const ProductPage = () => {
                       value={form.productCategory}
                       onChange={(e) => onChange(e, "productCategory")}
                     >
+                      <option value="">Select Category</option>
                       {parents.map((item) => (
                         <option key={item} value={item}>
                           {item}

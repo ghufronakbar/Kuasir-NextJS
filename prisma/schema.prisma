@@ -194,6 +194,7 @@ model Outcome {
   method      PaymentMethod
   category    String // nasgor / dendeng dsb
   description String?       @db.Text()
+  adminFee    Float         @default(0)
 
   stockId String
   stock   Stock  @relation(fields: [stockId], references: [id], onDelete: Cascade)

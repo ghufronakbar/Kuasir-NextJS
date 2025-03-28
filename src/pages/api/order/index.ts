@@ -2,6 +2,7 @@ import { db } from "@/config/db";
 import formatDate from "@/helper/formatDate";
 import AuthApi from "@/middleware/auth-api";
 import { DetailOrder, DetailOrderByDate } from "@/models/schema";
+import { sync } from "@/services/server/sync";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -49,7 +50,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
         { businessId: isAll ? undefined : businessId },
       ],
     },
-  })) as DetailOrder[];  
+  })) as DetailOrder[];
 
   const filteredOrders: DetailOrderByDate[] = [];
 
@@ -173,6 +174,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         id: decoded?.id || "",
       },
     });
+    await sync();
 
     await db.logActivity.create({
       data: {

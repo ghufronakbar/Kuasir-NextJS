@@ -5,7 +5,7 @@ import { AuthPage } from "@/middleware/auth-page";
 import { Api } from "@/models/response";
 import { useEffect, useState } from "react";
 import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
-import { MdCreate } from "react-icons/md";
+import { MdCheck, MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
 import { DetailOutcome, DetailStock } from "@/models/schema";
@@ -15,6 +15,7 @@ import { PLACEHOLDER } from "@/constants/image";
 import formatRupiah from "@/helper/formatRupiah";
 import { useBusiness } from "@/hooks/useBusiness";
 import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 const THEAD = ["No", "", "Name", "Amount", "Price", "Method", "Created At", ""];
 
@@ -41,6 +42,11 @@ const OutcomesPage = () => {
     confirmDelete,
     stocks,
     methods,
+    ADMIN_FEES,
+    isOtherAdminFee,
+    otherAdminFee,
+    setOtherAdminFee,
+    onClickAdminFee,
   } = useOutcomes(selectedBusiness);
 
   const { decoded } = useAuth();
@@ -101,10 +107,8 @@ const OutcomesPage = () => {
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                       value={form.stockId}
                       onChange={(e) => onChange(e, "stockId")}
-                    >
-                      <option value="" disabled hidden>
-                        Select Stock
-                      </option>
+                    >                      
+                      <option value="">Select Stock</option>
                       {stocks.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name} - {item.unit}
@@ -145,15 +149,43 @@ const OutcomesPage = () => {
                       value={form.amount}
                       onChange={(e) => onChange(e, "amount")}
                       placeholder="200"
-                      type="text"
+                      type="number"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                     />
+                    <Label className="mt-2 font-medium">Admin Fee</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[...ADMIN_FEES, "Other"].map((item) => (
+                        <div
+                          key={item}
+                          className={cn(
+                            "w-full px-2 border border-neutral-300 rounded-md bg-neutral-50 cursor-pointer flex items-center justify-center text-md py-2 gap-2",
+                            String(form.adminFee) === String(item) &&
+                              "bg-teal-500 text-white"
+                          )}
+                          onClick={() => onClickAdminFee(String(item))}
+                        >
+                          <span>{item}</span>
+                          {String(form.adminFee) === String(item) && (
+                            <MdCheck />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {isOtherAdminFee && (
+                      <input
+                        value={otherAdminFee}
+                        onChange={(e) => setOtherAdminFee(e.target.value)}
+                        placeholder="5000"
+                        type="number"
+                        className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                      />
+                    )}
                     <Label className="mt-2 font-medium">Price</Label>
                     <input
                       value={form.price}
                       onChange={(e) => onChange(e, "price")}
                       placeholder="200"
-                      type="text"
+                      type="number"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                     />
                     <Label className="mt-2 font-medium">Payment Method</Label>
@@ -269,6 +301,7 @@ interface OutcomeDTO {
   stockId: string;
   category: string;
   description: string;
+  adminFee: string;
 }
 
 const initOutcomeDTO: OutcomeDTO = {
@@ -279,6 +312,7 @@ const initOutcomeDTO: OutcomeDTO = {
   category: "",
   description: "",
   stockId: "",
+  adminFee: "0",
 };
 
 const useOutcomes = (businessId: string) => {
@@ -288,8 +322,11 @@ const useOutcomes = (businessId: string) => {
   const [stocks, setStocks] = useState<DetailStock[]>([]);
   const [form, setForm] = useState<OutcomeDTO>(initOutcomeDTO);
   const [other, setOther] = useState("");
+  const [otherAdminFee, setOtherAdminFee] = useState("");
   const [open, setOpen] = useState(false);
   const methods: string[] = Object.values($Enums.PaymentMethod);
+
+  const ADMIN_FEES = [0, 500, 1000, 2000, 5000];
 
   const onChange = (
     e: React.ChangeEvent<
@@ -332,6 +369,7 @@ const useOutcomes = (businessId: string) => {
       method: item.method,
       price: item.price,
       stockId: item.stockId,
+      adminFee: String(item.adminFee),
     });
   };
 
@@ -375,6 +413,9 @@ const useOutcomes = (businessId: string) => {
         ...form,
         businessId,
         category: isOther ? other : form.category,
+        adminFee: isOtherAdminFee
+          ? Number(otherAdminFee)
+          : Number(form.adminFee),
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -389,6 +430,9 @@ const useOutcomes = (businessId: string) => {
         ...form,
         businessId,
         category: isOther ? other : form.category,
+        adminFee: isOtherAdminFee
+          ? Number(otherAdminFee)
+          : Number(form.adminFee),
       });
       await fetching();
       makeToast("success", res?.data?.message);
@@ -422,7 +466,12 @@ const useOutcomes = (businessId: string) => {
     }
   };
 
+  const onClickAdminFee = (item: string) => {
+    setForm({ ...form, adminFee: item });
+  };
+
   const isOther = form.category === "Other";
+  const isOtherAdminFee = form.adminFee === "Other";
 
   return {
     data,
@@ -437,9 +486,14 @@ const useOutcomes = (businessId: string) => {
     onClickDetail,
     onClose,
     isOther,
+    isOtherAdminFee,
     mutate,
     confirmDelete,
     stocks,
     methods,
+    ADMIN_FEES,
+    otherAdminFee,
+    setOtherAdminFee,
+    onClickAdminFee,
   };
 };

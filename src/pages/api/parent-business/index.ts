@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -20,7 +21,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded, body } = req;
+    const { body } = req;
     const { name } = body;
     if (!name || typeof name !== "string")
       return res.status(400).json({ message: "All fields are required" });
@@ -44,22 +45,7 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: pb.id,
-        referenceModel: "ParentBusiness",
-        userId: decoded?.id || "",
-        type: "CREATE",
-        description: `${user?.name} create parent business ${pb.name}`,
-        detail: pb,
-      },
-    });
+    await saveToLog(req, "ParentBusiness", pb.id);
 
     return res
       .status(200)

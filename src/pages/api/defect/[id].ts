@@ -1,5 +1,7 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
+import { sync } from "@/services/server/sync";
 import type { NextApiRequest, NextApiResponse } from "next";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -20,7 +22,6 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   const id = (req.query.id as string) || "";
-  const { decoded } = req;
 
   const check = await db.defect.findUnique({
     where: {
@@ -41,42 +42,20 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
     where: {
       id,
     },
-  });
-
-  const newAmount = check.stock.quantity + Number(check.amount);
-
-  await db.stock.update({
-    where: {
-      id: check.stockId,
-    },
-    data: {
-      quantity: newAmount,
+    include: {
+      stock: true,
     },
   });
 
-  const user = await db.user.findUnique({
-    where: {
-      id: decoded?.id || "",
-    },
-  });
-
-  await db.logActivity.create({
-    data: {
-      referenceId: defect?.id,
-      type: "DELETE",
-      description: `${user?.name} delete a defect with amount ${defect?.amount} and reason ${defect?.reason} for stock ${check.stock.name} with id ${check.stock.id}.`,
-      referenceModel: "Defect",
-      detail: defect,
-      userId: user?.id || "",
-    },
-  });
+  await sync();
+  await saveToLog(req, "Defect", defect);
 
   return res.status(200).json({ message: "Success to delete", data: defect });
 };
 
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   const id = (req.query.id as string) || "";
-  const { decoded, body } = req;
+  const { body } = req;
   const { amount, reason } = body;
 
   if (!amount || !reason || isNaN(Number(amount)))
@@ -96,6 +75,13 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   if (check.stock.quantity - Number(amount) < 0)
     return res.status(400).json({ message: "Stock quantity is not enough" });
 
+  const gap = Number(check.amount) - Number(amount);
+
+  const newAmount = check.stock.quantity + Number(gap);
+
+  if (newAmount < 0)
+    return res.status(400).json({ message: "Stock quantity is not enough" });
+
   const defect = await db.defect.update({
     data: {
       amount: Number(amount),
@@ -106,39 +92,8 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  const gap = Number(check.amount) - Number(amount);
-
-  const newAmount = check.stock.quantity + Number(gap);
-
-  if (newAmount < 0)
-    return res.status(400).json({ message: "Stock quantity is not enough" });
-
-  await db.stock.update({
-    where: {
-      id: check.stockId,
-    },
-    data: {
-      quantity: newAmount,
-    },
-  });
-
-  const user = await db.user.findUnique({
-    where: {
-      id: decoded?.id || "",
-    },
-  });
-
-  await db.logActivity.create({
-    data: {
-      referenceId: defect?.id,
-      type: "UPDATE",
-      before: check,
-      description: `${user?.name} update defect with amount ${amount} and reason ${reason} for stock ${check.stock.name} with id ${check.stock.id}.`,
-      referenceModel: "Defect",
-      detail: defect,
-      userId: user?.id || "",
-    },
-  });
+  await sync();
+  await saveToLog(req, "Defect", defect);
 
   return res.status(200).json({ message: "Success to edit", data: defect });
 };

@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -24,7 +25,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded, body } = req;
+    const { body } = req;
     const { name } = body;
     if (!name || typeof name !== "string")
       return res.status(400).json({ message: "All fields are required" });
@@ -47,12 +48,6 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
     const checkName = await db.productCategory.findFirst({
       where: {
         name: {
@@ -68,17 +63,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
         .json({ message: "Product category name already exist" });
     }
 
-    await db.logActivity.create({
-      data: {
-        referenceId: category.id,
-        referenceModel: "ProductCategory",
-        userId: decoded?.id || "",
-        type: "UPDATE",
-        description: `${user?.name} edit product category ${check.name} to ${category.name}`,
-        detail: category,
-        before: check,
-      },
-    });
+    await saveToLog(req, "Product", id);
 
     return res
       .status(200)

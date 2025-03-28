@@ -1,5 +1,7 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
+import { sync } from "@/services/server/sync";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -30,7 +32,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const id = (req.query.id as string) || "";
-    const { decoded, body } = req;
+    const { body } = req;
     const { merchant, method, businessId, orderItems } = body;
 
     if (!merchant || !method || !businessId)
@@ -154,23 +156,8 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
-      },
-    });
-
-    await db.logActivity.create({
-      data: {
-        referenceId: order.id,
-        referenceModel: "Order",
-        userId: user?.id || "",
-        description: `${user?.name} update order ${order.id}`,
-        type: "UPDATE",
-        before: checkId,
-        detail: order,
-      },
-    });
+    await sync();
+    await saveToLog(req, "Order", order);
 
     return res
       .status(200)
@@ -199,25 +186,17 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       data: {
         isDeleted: true,
       },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: req.decoded?.id || "",
+      include: {
+        orderItems: {
+          include: {
+            product: true,
+          },
+        },
+        business: true,
       },
     });
 
-    await db.logActivity.create({
-      data: {
-        referenceId: order.id,
-        referenceModel: "Order",
-        userId: user?.id || "",
-        description: `${user?.name} delete order ${order.id}`,
-        type: "DELETE",
-        before: order,
-        detail: updatedOrder,
-      },
-    });
+    await saveToLog(req, "Order", updatedOrder);
 
     return res
       .status(200)

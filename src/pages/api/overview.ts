@@ -550,7 +550,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   for (const outcome of outcomes) {
-    totalExpenseByOrder += outcome.amount;
+    totalExpenseByOrder += outcome.price;
   }
 
   const totalByOrder = totalIncomeByOrder - totalExpenseByOrder;

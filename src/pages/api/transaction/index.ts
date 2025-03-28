@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -26,7 +27,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded, body } = req;
+    const { body } = req;
     const { title, amount, description, type, businessId, category } = body;
     if (
       !title ||
@@ -67,24 +68,12 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         businessId,
         category,
       },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
+      include: {
+        business: true,
       },
     });
 
-    await db.logActivity.create({
-      data: {
-        referenceId: transaction.id,
-        referenceModel: "Transaction",
-        userId: decoded?.id || "",
-        type: "CREATE",
-        description: `${user?.name} create ${transaction.type} transaction ${transaction.title} with amount ${transaction.amount}`,
-        detail: transaction,
-      },
-    });
+    await saveToLog(req, "Transaction", transaction);
 
     return res.status(200).json({
       message: "Successfull create transaction",

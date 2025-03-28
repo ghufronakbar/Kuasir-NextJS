@@ -1,5 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
+import { saveToLog } from "@/services/server/saveToLog";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -52,7 +53,7 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const { decoded, body } = req;
+    const { body } = req;
     const { name, parentBusiness } = body;
     if (
       !name ||
@@ -115,24 +116,12 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
         name,
         parentBusinessId: parentBusinessId || "",
       },
-    });
-
-    const user = await db.user.findUnique({
-      where: {
-        id: decoded?.id || "",
+      include: {
+        parentBusiness: true,
       },
     });
 
-    await db.logActivity.create({
-      data: {
-        referenceId: business.id,
-        referenceModel: "Business",
-        userId: decoded?.id || "",
-        type: "CREATE",
-        description: `${user?.name} create business ${business.name}`,
-        detail: business,
-      },
-    });
+    await saveToLog(req, "Business", business);
 
     return res
       .status(200)
