@@ -119,7 +119,8 @@ model Order {
   total    Float         @default(0)
   business Business      @default(Haykatuju)
 
-  orderItems OrderItem[]
+  orderItems   OrderItem[]
+  transactions Transaction[]
 
   isDeleted Boolean @default(false)
 
@@ -167,8 +168,9 @@ model Outcome {
   description String?       @db.Text()
   adminFee    Float         @default(0)
 
-  stockId String
-  stock   Stock  @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  stockId      String
+  stock        Stock         @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 
   isDeleted Boolean @default(false)
 
@@ -213,67 +215,53 @@ enum TransactionType {
   Expense
 }
 
-enum OperationalType {
+enum TransactionSubCategoryType {
+  // Product
+  Sell
+  Expenditure
+
+  // Operational
   Salary
   Rent
   Utility
   Marketing
-  Transaction
-}
 
-model Operational {
-  id          String          @id @default(uuid())
-  type        OperationalType
-  description String?         @db.Text()
-  note        String?         @db.Text()
-  amount      Float
-  transaction TransactionType
-
-  isDeleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-// CAPEX
-
-enum CapitalType {
+  // Capital
   Asset
   RnD
   Legal
-  Transaction
-}
 
-model Capital {
-  id          String          @id @default(uuid())
-  type        CapitalType
-  description String?         @db.Text()
-  note        String?         @db.Text()
-  amount      Float
-  transaction TransactionType
-
-  isDeleted Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-}
-
-// FINANCE
-
-enum FinanceType {
+  // Finance
   Loan
   Investment
   Dividend
+
+  // Transaction
   Transaction
 }
 
-model Finance {
-  id          String          @id @default(uuid())
-  type        FinanceType
-  description String?         @db.Text()
-  note        String?         @db.Text()
+enum TransactionCategoryType {
+  Product
+  Operational
+  Capital
+  Finance
+}
+
+model Transaction {
+  id String @id @default(uuid())
+
+  category    TransactionCategoryType
+  subCategory TransactionSubCategoryType
+  description String?                    @db.Text()
+  note        String?                    @db.Text()
   amount      Float
   transaction TransactionType
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  outcomeId String?
+  outcome   Outcome? @relation(fields: [outcomeId], references: [id], onDelete: Cascade)
 
   isDeleted Boolean @default(false)
 

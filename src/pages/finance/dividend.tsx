@@ -8,12 +8,11 @@ import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
-import { Finance } from "@prisma/client";
+import { Transaction } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
-import { DetailUser } from "@/models/schema";
 import { ReportFinance } from "@/components/material/report/finance";
 
-const THEAD = ["No", "Recipient", "Note", "Amount", "Created At", ""];
+const THEAD = ["No", "Title", "Note", "Amount", "Created At", ""];
 
 const DividendPage = () => {
   const {
@@ -27,7 +26,6 @@ const DividendPage = () => {
     onClose,
     mutate,
     confirmDelete,
-    users,
   } = useDividend();
 
   return (
@@ -69,23 +67,13 @@ const DividendPage = () => {
                       mutate();
                     }}
                   >
-                    <Label className="mt-2 font-medium">Employee</Label>
-                    <select
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    <Label className="mt-2 font-medium">Title</Label>
+                    <input
                       value={form.description}
                       onChange={(e) => onChange(e, "description")}
-                    >
-                      <option value="">Select Employee</option>
-                      {users.map((item) => (
-                        <option
-                          key={item.id}
-                          value={`${item.name} (${item.role})`}
-                        >
-                          {item.name} ({item.role})
-                        </option>
-                      ))}
-                    </select>
-
+                      placeholder="Dividend 2023"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
                     <Label className="mt-2 font-medium">Amount</Label>
                     <input
                       value={form.amount}
@@ -188,9 +176,8 @@ const initOutcomeDTO: OutcomeDTO = {
 };
 
 const useDividend = () => {
-  const [data, setData] = useState<Finance[]>([]);
+  const [data, setData] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState<DetailUser[]>([]);
   const [form, setForm] = useState<OutcomeDTO>(initOutcomeDTO);
   const [open, setOpen] = useState(false);
 
@@ -205,17 +192,12 @@ const useDividend = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<Finance[]>>("/finance/dividend");
+    const response = await api.get<Api<Transaction[]>>("/finance/dividend");
     setData(response.data.data);
     setLoading(false);
   };
 
-  const fetchUsers = async () => {
-    const res = await api.get<Api<DetailUser[]>>("/user");
-    setUsers(res.data.data);
-  };
-
-  const onClickDetail = (item: Finance) => {
+  const onClickDetail = (item: Transaction) => {
     setOpen(true);
     setForm({
       amount: item.amount,
@@ -231,7 +213,7 @@ const useDividend = () => {
   };
 
   const fetching = async () => {
-    await Promise.all([fetchData(), fetchUsers()]);
+    await Promise.all([fetchData()]);
   };
 
   useEffect(() => {
@@ -286,7 +268,7 @@ const useDividend = () => {
     );
   };
 
-  const confirmDelete = async (item: Finance) => {
+  const confirmDelete = async (item: Transaction) => {
     try {
       const isConfirm = confirm("Are you sure you want to delete this data?");
       if (!isConfirm || loading) return;
@@ -313,6 +295,5 @@ const useDividend = () => {
     onClose,
     mutate,
     confirmDelete,
-    users,
   };
 };

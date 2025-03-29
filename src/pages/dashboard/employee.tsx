@@ -15,7 +15,7 @@ import { DetailUser } from "@/models/schema";
 
 const THEAD = ["No", "", "Name", "Email", "Role", "Created At", ""];
 
-const UserPage = () => {
+const EmployeePage = () => {
   const {
     data,
     Loading,
@@ -31,7 +31,7 @@ const UserPage = () => {
   } = useUsers();
   return (
     <DashboardLayout
-      title="Users"
+      title="Employee"
       childrenHeader={
         <Dialog.Root
           size="sm"
@@ -179,7 +179,7 @@ const UserPage = () => {
   );
 };
 
-export default AuthPage(UserPage, ["CASHIER", "OWNER"]);
+export default AuthPage(EmployeePage, ["CASHIER", "OWNER"]);
 
 interface UserDTO {
   id: string;

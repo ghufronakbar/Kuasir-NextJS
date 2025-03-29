@@ -4,54 +4,69 @@ import formatRupiah from "@/helper/formatRupiah";
 import { cn } from "@/utils/cn";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { ChartData, Overview, ReportOrder } from "./api/overview";
+import { ChartData, Overview, ReportOrder } from "../api/overview";
 import { api } from "@/config/api";
 import { Api } from "@/models/response";
 import { DetailProduct } from "@/models/schema";
 import { FaChartLine } from "react-icons/fa";
 import { MdBusiness } from "react-icons/md";
 import { LoadingPage } from "@/components/material/loading-page";
-import { useBusiness } from "@/hooks/useBusiness";
 
 const OverviewPage = () => {
-  const { onChange, selectedBusiness } = useBusiness();
-  const { data } = useOverview(selectedBusiness);
+  const { data } = useOverview();
 
   return (
-    <DashboardLayout
-      title="Overview"
-      belowHeader={
-        <select
-          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
-          onChange={onChange}
-          value={selectedBusiness}
-        >
-          {[].map((item, index) => (
-            <option key={index} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-      }
-    >
+    <DashboardLayout title="Overview">
       {data ? (
         <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <GridProduct items={data.chart.topProduct as DetailProduct[]} />
-          <GridMaster title={"Total Product"} count={data.master.product} />
           <GridItemOrder items={data?.order} />
           <GridFinance
-            title="Finance by Order"
-            total={data.financeByOrder.total}
-            expense={data.financeByOrder.totalExpense}
-            income={data.financeByOrder.totalIncome}
+            title="Total Balance"
+            balance={
+              data?.report?.order?.total +
+              data?.report?.capital?.total +
+              data?.report?.finance?.total +
+              data?.report?.operational?.total
+            }
+            minus={
+              data?.report?.order?.minus +
+              data?.report?.capital?.minus +
+              data?.report?.finance?.minus +
+              data?.report?.operational?.minus
+            }
+            plus={
+              data?.report?.order?.plus +
+              data?.report?.capital?.plus +
+              data?.report?.finance?.plus +
+              data?.report?.operational?.plus
+            }
+          />
+          <GridFinance
+            title="Product Report"
+            balance={data?.report?.order?.total}
+            minus={data?.report?.order?.minus}
+            plus={data?.report?.order?.plus}
+          />
+          <GridFinance
+            title="Operational Report"
+            balance={data?.report?.operational?.total}
+            minus={data?.report?.operational?.minus}
+            plus={data?.report?.operational?.plus}
+          />
+          <GridFinance
+            title="Capital Report"
+            balance={data?.report?.capital?.total}
+            minus={data?.report?.capital?.minus}
+            plus={data?.report?.capital?.plus}
+          />
+          <GridFinance
+            title="Finance Report"
+            balance={data?.report?.finance?.total}
+            minus={data?.report?.finance?.minus}
+            plus={data?.report?.finance?.plus}
           />
 
-          <GridFinance
-            title="Finance by Transaction"
-            total={data.financeByTransaction.total}
-            expense={data.financeByTransaction.totalExpense}
-            income={data.financeByTransaction.totalIncome}
-          />
           <GridChart items={data.chart.chartAnnualy} />
         </div>
       ) : (
@@ -61,21 +76,17 @@ const OverviewPage = () => {
   );
 };
 
-const useOverview = (businessId: string) => {
+const useOverview = () => {
   const [data, setData] = useState<Overview>();
 
   const fetchData = async () => {
-    const res = await api.get<Api<Overview>>("/overview", {
-      params: { businessId },
-    });
+    const res = await api.get<Api<Overview>>("/overview");
     setData(res.data.data);
   };
 
   useEffect(() => {
-    if (businessId) {
-      fetchData();
-    }
-  }, [businessId]);
+    fetchData();
+  }, []);
 
   return { data };
 };
@@ -94,10 +105,12 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
     const selectedItem = items.find((item) => item.name === e.target.value);
     if (selectedItem) setItem(selectedItem);
   };
+
+  const isAll = item?.name === "All";
   return (
     <div className="w-full h-60 bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2">
       <div className="flex flex-row items-center justify-between">
-        <h2 className="text-md text-neutral-700">Order Report</h2>
+        <h2 className="text-md text-neutral-700">Sales</h2>
         <select
           className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
           onChange={onChange}
@@ -111,30 +124,34 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
         <p className="text-sm text-neutral-600 font-normal">Omzet</p>
         <p className="text-3xl text-neutral-800 font-semibold">
           {formatRupiah(current?.omzet)}{" "}
-          <span
-            className={cn(
-              "text-base",
-              isPositiveOmzet ? "text-green-500" : "text-red-500"
-            )}
-          >
-            {isPositiveOmzet ? "+" : ""}
-            {gap.omzet.toFixed(1)}%
-          </span>
+          {!isAll && (
+            <span
+              className={cn(
+                "text-base",
+                isPositiveOmzet ? "text-green-500" : "text-red-500"
+              )}
+            >
+              {isPositiveOmzet ? "+" : ""}
+              {gap.omzet.toFixed(1)}%
+            </span>
+          )}
         </p>
       </div>
       <div>
         <p className="text-sm text-neutral-600 font-normal">Net Profit</p>
         <p className="text-xl text-neutral-800 font-semibold">
           {formatRupiah(current?.netProfit)}{" "}
-          <span
-            className={cn(
-              "text-sm",
-              isPositiveProfit ? "text-green-500" : "text-red-500"
-            )}
-          >
-            {isPositiveProfit ? "+" : ""}
-            {gap?.netProfit?.toFixed(1)}%
-          </span>
+          {!isAll && (
+            <span
+              className={cn(
+                "text-sm",
+                isPositiveProfit ? "text-green-500" : "text-red-500"
+              )}
+            >
+              {isPositiveProfit ? "+" : ""}
+              {gap?.netProfit?.toFixed(1)}%
+            </span>
+          )}
         </p>
       </div>
       <div>
@@ -144,15 +161,17 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
           <span className="text-neutral-600 text-sm">
             ({current?.orderItem} products)
           </span>{" "}
-          <span
-            className={cn(
-              "text-sm",
-              isPositiveOrder ? "text-green-500" : "text-red-500"
-            )}
-          >
-            {isPositiveOrder ? "+" : ""}
-            {gap.order.toFixed(1)}%
-          </span>
+          {!isAll && (
+            <span
+              className={cn(
+                "text-sm",
+                isPositiveOrder ? "text-green-500" : "text-red-500"
+              )}
+            >
+              {isPositiveOrder ? "+" : ""}
+              {gap.orderItem.toFixed(1)}%
+            </span>
+          )}
         </p>
       </div>
     </div>
@@ -164,7 +183,7 @@ interface ProductProps {
 }
 const GridProduct: React.FC<ProductProps> = ({ items }) => {
   return (
-    <div className="w-full bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 row-span-2 overflow-hidden">
+    <div className="w-full bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 row-span-2 overflow-hidden overflow-x-auto">
       <h4 className="text-md text-neutral-700">Best Seller</h4>
       <div className="w-full flex flex-col gap-2">
         {items.map((item, index) => (
@@ -200,37 +219,37 @@ const GridProduct: React.FC<ProductProps> = ({ items }) => {
 };
 
 interface FinanceProps {
-  total: number;
-  income: number;
-  expense: number;
+  balance: number;
+  plus: number;
+  minus: number;
   title: string;
 }
 
 const GridFinance: React.FC<FinanceProps> = ({
-  expense,
-  income,
-  total,
+  minus,
+  plus,
+  balance,
   title,
 }) => {
   return (
     <div className="w-full h-60 bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 overflow-hidden">
       <h4 className="text-md text-neutral-700">{title}</h4>
       <div>
-        <p className="text-sm text-neutral-600 font-normal">Total</p>
+        <p className="text-sm text-neutral-600 font-normal">Balance</p>
         <p className="text-3xl text-neutral-800 font-semibold">
-          {formatRupiah(total)}{" "}
+          {formatRupiah(balance)}{" "}
         </p>
       </div>
       <div>
-        <p className="text-sm text-neutral-600 font-normal">Income</p>
+        <p className="text-sm text-neutral-600 font-normal">To Be Received</p>
         <p className="text-xl font-semibold text-green-500">
-          + {formatRupiah(income)}{" "}
+          {formatRupiah(plus)}{" "}
         </p>
       </div>
       <div>
-        <p className="text-sm text-neutral-600 font-normal">Expense</p>
+        <p className="text-sm text-neutral-600 font-normal">To Be Paid</p>
         <p className="text-xl text-red-500 font-semibold">
-          - {formatRupiah(expense)}
+          {formatRupiah(minus)}
         </p>
       </div>
     </div>
@@ -242,6 +261,7 @@ interface MasterProps {
   count: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const GridMaster: React.FC<MasterProps> = ({ title, count }) => {
   return (
     <div className="w-full h-60 bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 overflow-hidden">

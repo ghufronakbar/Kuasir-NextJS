@@ -5,17 +5,17 @@ import { initReport, Report } from "@/models/schema";
 import AuthApi from "@/middleware/auth-api";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse<Api<Report>>) => {
-  const capitals = await db.capital.findMany({
-    where: { isDeleted: false },
+  const transactions = await db.transaction.findMany({
+    where: { AND: [{ category: "Capital" }, { isDeleted: false }] },
     select: { amount: true, transaction: true },
   });
   const report = { ...initReport };
-  for (const capital of capitals) {
-    if (capital.transaction === "Expense") {
-      report.minus += capital.amount;
+  for (const transaction of transactions) {
+    if (transaction.transaction === "Expense") {
+      report.minus += transaction.amount;
     } else {
-      report.plus += capital.amount;
-    }    
+      report.plus += transaction.amount;
+    }
   }
   report.total = report.plus - report.minus;
   return res.status(200).json({ message: "OK", data: report });

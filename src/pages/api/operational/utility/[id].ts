@@ -5,16 +5,16 @@ import { saveToLog } from "@/services/server/saveToLog";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
   const id = (req.query.id as string) || "";
-  const operational = await db.operational.findUnique({
+  const transaction = await db.transaction.findUnique({
     where: {
       id,
     },
   });
 
-  if (!operational || operational.isDeleted)
-    return res.status(404).json({ message: "Operational not found" });
+  if (!transaction || transaction.isDeleted)
+    return res.status(404).json({ message: "Transaction not found" });
 
-  return res.status(200).json({ message: "OK", data: operational });
+  return res.status(200).json({ message: "OK", data: transaction });
 };
 
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -30,10 +30,11 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   if (Number(amount) < 0)
     return res.status(400).json({ message: "Invalid amount" });
 
-  const operational = await db.operational.update({
+  const transaction = await db.transaction.update({
     data: {
       description,
-      type: "Utility",
+      subCategory: "Utility",
+      category: "Operational",
       amount: Number(amount),
       transaction: "Expense",
       note
@@ -43,17 +44,17 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  await saveToLog(req, "Operational", operational);
+  await saveToLog(req, "Transaction", transaction);
 
   return res
     .status(200)
-    .json({ message: "Successfull update operational", data: operational });
+    .json({ message: "Successfull update transaction", data: transaction });
 };
 
 const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
   const id = (req.query.id as string) || "";
 
-  const operational = await db.operational.update({
+  const transaction = await db.transaction.update({
     data: {
       isDeleted: true,
     },
@@ -62,11 +63,11 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  await saveToLog(req, "Operational", operational);
+  await saveToLog(req, "Transaction", transaction);
 
   return res
     .status(200)
-    .json({ message: "Successfull delete operational", data: operational });
+    .json({ message: "Successfull delete transaction", data: transaction });
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {

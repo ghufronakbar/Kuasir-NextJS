@@ -3,20 +3,23 @@ import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
-  const operationals = await db.operational.findMany({
+  const transactions = await db.transaction.findMany({
     where: {
       AND: [
         {
           isDeleted: false,
         },
         {
-          type: "Transaction",
+          subCategory: "Transaction",
+        },
+        {
+          category: "Operational",
         },
       ],
     },
   });
 
-  return res.status(200).json({ message: "OK", data: operationals });
+  return res.status(200).json({ message: "OK", data: transactions });
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {

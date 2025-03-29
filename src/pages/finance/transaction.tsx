@@ -4,7 +4,7 @@ import formatDate from "@/helper/formatDate";
 import { AuthPage } from "@/middleware/auth-page";
 import { Api } from "@/models/response";
 import { useEffect, useState } from "react";
-import { Finance } from "@prisma/client";
+import { Transaction } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
 import { ReportFinance } from "@/components/material/report/finance";
 
@@ -61,12 +61,12 @@ const FinanceIncomePage = () => {
 export default AuthPage(FinanceIncomePage, ["CASHIER", "OWNER"]);
 
 const useFinance = () => {
-  const [data, setData] = useState<Finance[]>([]);
+  const [data, setData] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<Finance[]>>("/finance/transaction");
+    const response = await api.get<Api<Transaction[]>>("/finance/transaction");
     setData(response.data.data);
     setLoading(false);
   };

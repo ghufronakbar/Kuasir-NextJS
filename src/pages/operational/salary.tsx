@@ -8,7 +8,7 @@ import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
-import { Operational } from "@prisma/client";
+import { Transaction } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
 import { DetailUser } from "@/models/schema";
 import { ReportOperational } from "@/components/material/report/operational";
@@ -188,7 +188,7 @@ const initOutcomeDTO: OutcomeDTO = {
 };
 
 const useSalary = () => {
-  const [data, setData] = useState<Operational[]>([]);
+  const [data, setData] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<DetailUser[]>([]);
   const [form, setForm] = useState<OutcomeDTO>(initOutcomeDTO);
@@ -205,7 +205,7 @@ const useSalary = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<Operational[]>>("/operational/salary");
+    const response = await api.get<Api<Transaction[]>>("/operational/salary");
     setData(response.data.data);
     setLoading(false);
   };
@@ -215,7 +215,7 @@ const useSalary = () => {
     setUsers(res.data.data);
   };
 
-  const onClickDetail = (item: Operational) => {
+  const onClickDetail = (item: Transaction) => {
     setOpen(true);
     setForm({
       amount: item.amount,
@@ -286,7 +286,7 @@ const useSalary = () => {
     );
   };
 
-  const confirmDelete = async (item: Operational) => {
+  const confirmDelete = async (item: Transaction) => {
     try {
       const isConfirm = confirm("Are you sure you want to delete this data?");
       if (!isConfirm || loading) return;

@@ -146,8 +146,19 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    await saveToLog(req, "Order", order);
-    await sync();
+    await Promise.all([
+      db.transaction.create({
+        data: {
+          amount: total,
+          category: "Product",
+          subCategory: "Sell",
+          transaction: "Income",
+          orderId: order.id,
+        },
+      }),
+      saveToLog(req, "Order", order),
+      sync(),
+    ]);
 
     return res
       .status(200)

@@ -1,6 +1,6 @@
 import { db } from "@/config/db";
 import formatDate from "@/helper/formatDate";
-import { DetailOrder, DetailProduct } from "@/models/schema";
+import { DetailOrder, DetailProduct, Report } from "@/models/schema";
 import { Outcome, Product } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -9,17 +9,59 @@ import { NextApiRequest, NextApiResponse } from "next/types";
  */
 
 export interface DataOrder {
-  current: DetailDataOrder;
-  previous: DetailDataOrder;
-  gap: DetailDataOrder;
+  current: Sales;
+  previous: Sales;
+  gap: Sales;
 }
 
-interface DetailDataOrder {
+interface Sales {
   omzet: number;
   cogs: number;
   netProfit: number;
   order: number;
   orderItem: number;
+}
+
+export interface SalesDetail {
+  omzet: number;
+  cogs: number;
+  netProfit: number;
+  order: number;
+  orderItem: number;
+}
+
+export interface ReportOrder {
+  name: string;
+  current: SalesDetail;
+  previous: SalesDetail;
+  gap: SalesDetail;
+}
+
+export interface Overview {
+  order: ReportOrder[];
+  report: {
+    order: Report;
+    operational: Report;
+    capital: Report;
+    finance: Report;
+  };
+  chart: {
+    chartAnnualy: ChartData[];
+    chartMonthly: ChartData[];
+    chartWeekly: ChartData[];
+    topProduct: Product[]; //top 5
+  };
+}
+
+export interface ChartData {
+  date: string;
+  omzet: number;
+  cogs: number;
+  netProfit: number;
+  cash: number;
+  transfer: number;
+  qris: number;
+  expense: number;
 }
 
 const getDataOrderDaily = async (orders: DetailOrder[]): Promise<DataOrder> => {
@@ -270,59 +312,49 @@ const getDataOrderMonthly = async (
   return data;
 };
 
-export interface ReportOrderDetail {
-  omzet: number;
-  cogs: number;
-  netProfit: number;
-  order: number;
-  orderItem: number;
-}
+const getAllDataOrder = async (orders: DetailOrder[]): Promise<DataOrder> => {
+  let omzet = 0;
+  let cogs = 0;
+  let netProfit = 0;
+  let orderItem = 0;
 
-export interface ReportOrder {
-  name: string;
-  current: ReportOrderDetail;
-  previous: ReportOrderDetail;
-  gap: ReportOrderDetail;
-}
+  for (const order of orders) {
+    omzet += order.total;
+    netProfit += order.total;
+    for (const item of order.orderItems) {
+      cogs += item.product.cogs;
+      netProfit -= item.product.cogs;
+      orderItem += item.amount;
+    }
+  }
 
-export interface Overview {
-  master: {
-    product: number;
-  };
-  order: ReportOrder[];
-  analyticOrder: {
-    bestSeller: Product;
-    worstSeller: Product;
-  };
-  chart: {
-    chartAnnualy: ChartData[];
-    chartMonthly: ChartData[];
-    chartWeekly: ChartData[];
-    topProduct: Product[]; //top 5
+  const current = {
+    omzet,
+    cogs,
+    netProfit,
+    order: orders.length,
+    orderItem,
   };
 
-  financeByTransaction: {
-    totalIncome: number;
-    totalExpense: number;
-    total: number;
+  const data: DataOrder = {
+    current,
+    previous: {
+      omzet: 0,
+      cogs: 0,
+      netProfit: 0,
+      order: 0,
+      orderItem: 0,
+    },
+    gap: {
+      omzet: 0,
+      cogs: 0,
+      netProfit: 0,
+      order: 0,
+      orderItem: 0,
+    },
   };
-  financeByOrder: {
-    totalIncome: number;
-    totalExpense: number;
-    total: number;
-  };
-}
-
-export interface ChartData {
-  date: string;
-  omzet: number;
-  cogs: number;
-  netProfit: number;
-  cash: number;
-  transfer: number;
-  qris: number;
-  expense: number;
-}
+  return data;
+};
 
 const getChartData = async (
   orders: DetailOrder[],
@@ -386,15 +418,6 @@ const getChartData = async (
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  const totalProduct = await db.product.count({
-    where: {
-      AND: [
-        {
-          isDeleted: false,
-        },
-      ],
-    },
-  });
   const bestProduct = await db.product.findMany({
     where: {
       isDeleted: false,
@@ -409,6 +432,23 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       image: true,
       name: true,
       price: true,
+      orderItems: {
+        where: {
+          AND: [
+            {
+              isDeleted: false,
+            },
+            {
+              order: {
+                isDeleted: false,
+              },
+            },
+          ],
+        },
+        select: {
+          amount: true,
+        },
+      },
       _count: {
         select: {
           orderItems: true,
@@ -418,52 +458,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     take: 5,
   });
 
-  const idProducts = bestProduct.map((p) => p.id);
-
-  const orderItems = await db.orderItem.findMany({
-    where: {
-      AND: [
-        {
-          product: {
-            id: {
-              in: idProducts,
-            },
-          },
-        },
-        {
-          isDeleted: false,
-        },
-      ],
-    },
-  });
-
   for (const product of bestProduct) {
-    product._count.orderItems = orderItems
-      .filter((oi) => oi.productId === product.id)
-      .reduce((acc, cur) => acc + cur.amount, 0);
+    product._count.orderItems = product.orderItems.reduce(
+      (acc, item) => acc + item.amount,
+      0
+    );
   }
 
-  const worstProduct = await db.product.findFirst({
-    where: {
-      isDeleted: false,
-    },
-    orderBy: {
-      orderItems: {
-        _count: "asc",
-      },
-    },
-    select: {
-      id: true,
-      image: true,
-      name: true,
-      price: true,
-      _count: {
-        select: {
-          orderItems: true,
-        },
-      },
-    },
-  });
+  bestProduct.sort((a, b) => b._count.orderItems - a._count.orderItems);
 
   const orders = await db.order.findMany({
     orderBy: {
@@ -479,8 +481,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           product: {
             select: {
               price: true,
+              cogs: true,
             },
           },
+          amount: true,
         },
       },
     },
@@ -494,6 +498,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const dailyData = await getDataOrderDaily(orders as DetailOrder[]);
   const monthlyData = await getDataOrderMonthly(orders as DetailOrder[]);
   const weeklyData = await getDataOrderWeekly(orders as DetailOrder[]);
+  const allData = await getAllDataOrder(orders as DetailOrder[]);
 
   const outcomes = await db.outcome.findMany({
     orderBy: {
@@ -503,19 +508,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       isDeleted: false,
     },
   });
-
-  let totalIncomeByOrder = 0;
-  let totalExpenseByOrder = 0;
-
-  for (const order of orders) {
-    totalIncomeByOrder += order.total;
-  }
-
-  for (const outcome of outcomes) {
-    totalExpenseByOrder += outcome.price;
-  }
-
-  const totalByOrder = totalIncomeByOrder - totalExpenseByOrder;
 
   const chartData = await getChartData(orders as DetailOrder[], outcomes);
 
@@ -530,28 +522,26 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     (d) => Number(d.date.slice(-2)) <= sevenDaysAgo
   );
 
+  const [reportCapital, reportFinance, reportOperational, reportOrder] =
+    await Promise.all([
+      getReportCapital(),
+      getReportFinance(),
+      getReportOperational(),
+      getReportOrder(),
+    ]);
+
   const data: Overview = {
-    master: {
-      product: totalProduct,
-    },
     order: [
+      { ...allData, name: "All" },
       { ...dailyData, name: "Daily" },
       { ...monthlyData, name: "Monthly" },
       { ...weeklyData, name: "Weekly" },
     ],
-    analyticOrder: {
-      bestSeller: bestProduct[0] as DetailProduct,
-      worstSeller: worstProduct! as DetailProduct,
-    },
-    financeByTransaction: {
-      totalIncome: 0,
-      totalExpense: 0,
-      total: 0,
-    },
-    financeByOrder: {
-      totalIncome: totalIncomeByOrder,
-      totalExpense: totalExpenseByOrder,
-      total: totalByOrder,
+    report: {
+      capital: reportCapital,
+      finance: reportFinance,
+      operational: reportOperational,
+      order: reportOrder,
     },
     chart: {
       chartMonthly: monthlyChart,
@@ -565,3 +555,139 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 };
 
 export default handler;
+
+const getReportCapital = async (): Promise<Report> => {
+  const data = {
+    total: 0,
+    plus: 0,
+    minus: 0,
+  };
+  const capitals = await db.transaction.findMany({
+    where: {
+      AND: [
+        {
+          isDeleted: false,
+        },
+        {
+          category: "Capital",
+        },
+      ],
+    },
+    select: {
+      transaction: true,
+      amount: true,
+    },
+  });
+  for (const capital of capitals) {
+    if (capital.transaction === "Expense") {
+      data.minus += capital.amount;
+      data.total -= capital.amount;
+    } else {
+      data.plus += capital.amount;
+      data.total += capital.amount;
+    }
+  }
+  return data;
+};
+
+const getReportFinance = async (): Promise<Report> => {
+  const data = {
+    total: 0,
+    plus: 0,
+    minus: 0,
+  };
+  const finances = await db.transaction.findMany({
+    where: {
+      AND: [
+        {
+          isDeleted: false,
+        },
+        {
+          category: "Finance",
+        },
+      ],
+    },
+    select: {
+      transaction: true,
+      amount: true,
+    },
+  });
+  for (const finance of finances) {
+    if (finance.transaction === "Expense") {
+      data.minus += finance.amount;
+      data.total -= finance.amount;
+    } else {
+      data.plus += finance.amount;
+      data.total += finance.amount;
+    }
+  }
+  return data;
+};
+
+const getReportOperational = async (): Promise<Report> => {
+  const data = {
+    total: 0,
+    plus: 0,
+    minus: 0,
+  };
+  const operationals = await db.transaction.findMany({
+    where: {
+      AND: [
+        {
+          isDeleted: false,
+        },
+        {
+          category: "Operational",
+        },
+      ],
+    },
+    select: {
+      transaction: true,
+      amount: true,
+    },
+  });
+  for (const operational of operationals) {
+    if (operational.transaction === "Expense") {
+      data.minus += operational.amount;
+      data.total -= operational.amount;
+    } else {
+      data.plus += operational.amount;
+      data.total += operational.amount;
+    }
+  }
+  return data;
+};
+
+const getReportOrder = async (): Promise<Report> => {
+  const data = {
+    total: 0,
+    plus: 0,
+    minus: 0,
+  };
+  const operationals = await db.transaction.findMany({
+    where: {
+      AND: [
+        {
+          isDeleted: false,
+        },
+        {
+          category: "Product",
+        },
+      ],
+    },
+    select: {
+      transaction: true,
+      amount: true,
+    },
+  });
+  for (const operational of operationals) {
+    if (operational.transaction === "Expense") {
+      data.minus += operational.amount;
+      data.total -= operational.amount;
+    } else {
+      data.plus += operational.amount;
+      data.total += operational.amount;
+    }
+  }
+  return data;
+};

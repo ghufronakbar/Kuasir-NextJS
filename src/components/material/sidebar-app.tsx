@@ -13,6 +13,7 @@ import {
   FaHeartBroken,
   FaHome,
   FaMoneyBillWave,
+  FaPeopleArrows,
   FaProductHunt,
   FaShoppingCart,
   FaSignOutAlt,
@@ -45,14 +46,14 @@ const links: LinkProps[] = [
     items: [
       {
         label: "Overview",
-        href: "/overview",
+        href: "/dashboard/overview",
         icon: <SiGoogleanalytics className={iconClassName} />,
         roles: ["OWNER"],
       },
       {
-        label: "Employees",
-        href: "/user",
-        icon: <FaUser className={iconClassName} />,
+        label: "Employee",
+        href: "/dashboard/employee",
+        icon: <FaPeopleArrows className={iconClassName} />,
         roles: ["OWNER"],
       },
     ],

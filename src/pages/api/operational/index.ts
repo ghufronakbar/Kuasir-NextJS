@@ -5,16 +5,16 @@ import { initReport, Report } from "@/models/schema";
 import AuthApi from "@/middleware/auth-api";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse<Api<Report>>) => {
-  const finances = await db.finance.findMany({
-    where: { isDeleted: false },
+  const transactions = await db.transaction.findMany({
+    where: { AND: [{ category: "Operational" }, { isDeleted: false }] },
     select: { amount: true, transaction: true },
   });
   const report = { ...initReport };
-  for (const finance of finances) {
-    if (finance.transaction === "Expense") {
-      report.minus += finance.amount;
+  for (const transaction of transactions) {
+    if (transaction.transaction === "Expense") {
+      report.minus += transaction.amount;
     } else {
-      report.plus += finance.amount;
+      report.plus += transaction.amount;
     }
   }
   report.total = report.plus - report.minus;

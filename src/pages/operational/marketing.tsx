@@ -8,7 +8,7 @@ import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
-import { Operational } from "@prisma/client";
+import { Transaction } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
 import { ReportOperational } from "@/components/material/report/operational";
 
@@ -187,7 +187,7 @@ const initOutcomeDTO: OutcomeDTO = {
 };
 
 const useMarketing = () => {
-  const [data, setData] = useState<Operational[]>([]);
+  const [data, setData] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const marketings = [
     "ShopeeFood Ads",
@@ -214,14 +214,14 @@ const useMarketing = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<Operational[]>>(
+    const response = await api.get<Api<Transaction[]>>(
       "/operational/marketing"
     );
     setData(response.data.data);
     setLoading(false);
   };
 
-  const onClickDetail = (item: Operational) => {
+  const onClickDetail = (item: Transaction) => {
     setOpen(true);
     setForm({
       amount: item.amount,
@@ -292,7 +292,7 @@ const useMarketing = () => {
     );
   };
 
-  const confirmDelete = async (item: Operational) => {
+  const confirmDelete = async (item: Transaction) => {
     try {
       const isConfirm = confirm("Are you sure you want to delete this data?");
       if (!isConfirm || loading) return;

@@ -78,12 +78,10 @@ export const saveToLog = async (
     case "LogActivity":
       description = `${jsonValue?.description}`;
       break;
-    case "Operational":
-      description = `${jsonValue?.type} ${jsonValue?.description} (${formatRupiah(jsonValue?.amount)})`;
-    case "Capital":
-      description = `${jsonValue?.type} ${jsonValue?.description} (${formatRupiah(jsonValue?.amount)})`;
-    case "Finance":
-      description = `${jsonValue?.type} ${jsonValue?.description} (${formatRupiah(jsonValue?.amount)})`;
+    case "Transaction":
+      description = `${jsonValue?.type} ${
+        jsonValue?.description
+      } (${formatRupiah(jsonValue?.amount)})`;
       break;
   }
 

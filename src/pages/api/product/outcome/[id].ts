@@ -82,8 +82,41 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    await sync();
-    await saveToLog(req, "Outcome", outcome);
+    const checkTrans = await db.transaction.findFirst({
+      where: {
+        outcomeId: outcome.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (checkTrans) {
+      await Promise.all([
+        db.transaction.update({
+          data: {
+            amount: outcome.price + outcome.adminFee,
+          },
+          where: {
+            id: checkTrans.id,
+          },
+        }),
+        saveToLog(req, "Outcome", outcome),
+      ]);
+    } else {
+      await Promise.all([
+        saveToLog(req, "Outcome", outcome),
+        db.transaction.create({
+          data: {
+            amount: outcome.price + outcome.adminFee,
+            outcomeId: outcome.id,
+            category: "Product",
+            subCategory: "Expenditure",
+            transaction: "Expense",
+          },
+        }),
+      ]);
+    }
 
     return res
       .status(200)
@@ -119,8 +152,30 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    await sync();
-    await saveToLog(req, "Outcome", updated);
+    const checkTrans = await db.transaction.findFirst({
+      where: {
+        outcomeId: updated.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (checkTrans) {
+      await Promise.all([
+        db.transaction.update({
+          data: {
+            isDeleted: true,
+          },
+          where: {
+            id: checkTrans.id,
+          },
+        }),
+        sync(),
+        saveToLog(req, "Outcome", updated),
+      ]);
+    } else {
+      await Promise.all([sync(), saveToLog(req, "Outcome", updated)]);
+    }
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Internal Server Error" });

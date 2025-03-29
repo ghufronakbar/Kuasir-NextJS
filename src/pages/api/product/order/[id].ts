@@ -159,8 +159,40 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    await sync();
-    await saveToLog(req, "Order", order);
+    const checkTrans = await db.transaction.findFirst({
+      where: {
+        orderId: order.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (checkTrans) {
+      await Promise.all([
+        db.transaction.update({
+          data: {
+            amount: order.total,
+          },
+          where: {
+            id: checkTrans.id,
+          },
+        }),
+        saveToLog(req, "Order", order),
+      ]);
+    } else {
+      await Promise.all([
+        saveToLog(req, "Order", order),
+        db.transaction.create({
+          data: {
+            amount: order.total,
+            orderId: order.id,
+            category: "Product",
+            subCategory: "Sell",
+            transaction: "Income",
+          },
+        }),
+      ]);
+    }
 
     return res
       .status(200)
@@ -198,7 +230,30 @@ const DELETE = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    await saveToLog(req, "Order", updatedOrder);
+    const checkTrans = await db.transaction.findFirst({
+      where: {
+        orderId: order.id,
+      },
+      select: {
+        id: true,
+      },
+    });
+    if (checkTrans) {
+      await Promise.all([
+        db.transaction.update({
+          data: {
+            isDeleted: true,
+          },
+          where: {
+            id: checkTrans.id,
+          },
+        }),
+        sync(),
+        saveToLog(req, "Order", order),
+      ]);
+    } else {
+      await Promise.all([sync(), saveToLog(req, "Order", order)]);
+    }
 
     return res
       .status(200)

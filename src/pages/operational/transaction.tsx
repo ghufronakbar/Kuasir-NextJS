@@ -4,7 +4,7 @@ import formatDate from "@/helper/formatDate";
 import { AuthPage } from "@/middleware/auth-page";
 import { Api } from "@/models/response";
 import { useEffect, useState } from "react";
-import { Operational } from "@prisma/client";
+import { Transaction } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
 import { ReportOperational } from "@/components/material/report/operational";
 
@@ -61,12 +61,12 @@ const OperationalIncomePage = () => {
 export default AuthPage(OperationalIncomePage, ["CASHIER", "OWNER"]);
 
 const useOperational = () => {
-  const [data, setData] = useState<Operational[]>([]);
+  const [data, setData] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<Operational[]>>(
+    const response = await api.get<Api<Transaction[]>>(
       "/operational/transaction"
     );
     setData(response.data.data);

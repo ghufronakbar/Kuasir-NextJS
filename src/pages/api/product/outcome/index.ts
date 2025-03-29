@@ -1,7 +1,6 @@
 import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
 import { saveToLog } from "@/services/server/saveToLog";
-import { sync } from "@/services/server/sync";
 import { $Enums } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -71,8 +70,18 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
       },
     });
 
-    await sync();
-    await saveToLog(req, "Outcome", outcome);
+    await Promise.all([
+      db.transaction.create({
+        data: {
+          amount: outcome.price + outcome.adminFee,
+          category: "Product",
+          subCategory: "Expenditure",
+          transaction: "Expense",
+          outcomeId: outcome.id,
+        },
+      }),
+      saveToLog(req, "Outcome", outcome),
+    ]);
 
     return res
       .status(200)

@@ -116,7 +116,8 @@ const useLogin = () => {
       setPending(true);
       const response = await api.post("/account/login", form);
       Cookies.set("ACCESS_TOKEN", response?.data?.data?.accessToken);
-      router.push("/profile");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      router.push("/settings/profile");
     } catch (error) {
       console.log(error);
       if (error instanceof AxiosError) {

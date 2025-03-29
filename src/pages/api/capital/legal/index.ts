@@ -4,20 +4,20 @@ import AuthApi from "@/middleware/auth-api";
 import { saveToLog } from "@/services/server/saveToLog";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
-  const capitals = await db.capital.findMany({
+  const transactions = await db.transaction.findMany({
     where: {
       AND: [
         {
           isDeleted: false,
         },
         {
-          type: "Legal",
+          subCategory: "Legal",
         },
       ],
     },
   });
 
-  return res.status(200).json({ message: "OK", data: capitals });
+  return res.status(200).json({ message: "OK", data: transactions });
 };
 
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -32,21 +32,22 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   if (Number(amount) < 0)
     return res.status(400).json({ message: "Invalid amount" });
 
-  const capital = await db.capital.create({
+  const transaction = await db.transaction.create({
     data: {
       description,
-      type: "Legal",
+      subCategory: "Legal",
+      category: "Capital",
       amount: Number(amount),
       transaction: "Expense",
       note,
     },
   });
 
-  await saveToLog(req, "Capital", capital);
+  await saveToLog(req, "Transaction", transaction);
 
   return res
     .status(200)
-    .json({ message: "Successfull create capital", data: capital });
+    .json({ message: "Successfull create transaction", data: transaction });
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {

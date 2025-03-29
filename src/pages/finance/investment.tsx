@@ -8,7 +8,7 @@ import { Button, CloseButton, Dialog, Portal } from "@chakra-ui/react";
 import { MdCreate } from "react-icons/md";
 import { Label } from "@/components/ui/label";
 import { makeToast } from "@/helper/makeToast";
-import { Finance } from "@prisma/client";
+import { Transaction } from "@prisma/client";
 import formatRupiah from "@/helper/formatRupiah";
 import { ReportFinance } from "@/components/material/report/finance";
 
@@ -179,7 +179,7 @@ const initOutcomeDTO: OutcomeDTO = {
 };
 
 const useInvestment = () => {
-  const [data, setData] = useState<Finance[]>([]);
+  const [data, setData] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState<OutcomeDTO>(initOutcomeDTO);
   const [open, setOpen] = useState(false);
@@ -195,12 +195,12 @@ const useInvestment = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    const response = await api.get<Api<Finance[]>>("/finance/investment");
+    const response = await api.get<Api<Transaction[]>>("/finance/investment");
     setData(response.data.data);
     setLoading(false);
   };
 
-  const onClickDetail = (item: Finance) => {
+  const onClickDetail = (item: Transaction) => {
     setOpen(true);
     setForm({
       amount: item.amount,
@@ -271,7 +271,7 @@ const useInvestment = () => {
     );
   };
 
-  const confirmDelete = async (item: Finance) => {
+  const confirmDelete = async (item: Transaction) => {
     try {
       const isConfirm = confirm("Are you sure you want to delete this data?");
       if (!isConfirm || loading) return;

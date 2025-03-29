@@ -3,20 +3,23 @@ import { db } from "@/config/db";
 import AuthApi from "@/middleware/auth-api";
 
 const GET = async (req: NextApiRequest, res: NextApiResponse) => {
-  const capitals = await db.capital.findMany({
+  const transactions = await db.transaction.findMany({
     where: {
       AND: [
         {
           isDeleted: false,
         },
         {
-          type: "Transaction",
+          subCategory: "Transaction",
+        },
+        {
+          category: "Capital",
         },
       ],
     },
   });
 
-  return res.status(200).json({ message: "OK", data: capitals });
+  return res.status(200).json({ message: "OK", data: transactions });
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {

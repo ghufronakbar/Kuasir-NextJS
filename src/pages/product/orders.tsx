@@ -19,12 +19,10 @@ const OrdersPage = () => {
     selectedBusiness,
     onChange: onChangeB,
   } = useBusiness();
-  const { data: d, Loading, deleteOrder } = useOrders();
-  const data = d.filter((item) =>
-    item.orders.some(
-      (order) => order.business === (selectedBusiness as $Enums.Business)
-    )
+  const { data, Loading, deleteOrder } = useOrders(
+    selectedBusiness as $Enums.Business
   );
+
   return (
     <DashboardLayout
       title="Orders"
@@ -170,10 +168,16 @@ const OrdersPage = () => {
 
 export default AuthPage(OrdersPage, ["CASHIER", "OWNER"]);
 
-const useOrders = () => {
-  const [data, setData] = useState<DetailOrderByDate[]>([]);
+const useOrders = (business: $Enums.Business) => {
+  const [d, setData] = useState<DetailOrderByDate[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const data = d.filter((item) =>
+    item.orders.some(
+      (order) => order.business === (business as $Enums.Business)
+    )
+  );
 
   const fetchData = async () => {
     setLoading(true);
