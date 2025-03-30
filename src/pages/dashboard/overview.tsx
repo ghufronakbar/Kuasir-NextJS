@@ -189,107 +189,129 @@ interface ChartProps {
 const formatNumber = (num: number) => {
   return num.toLocaleString();
 };
-
 const GridChart: React.FC<ChartProps> = ({ items }) => {
   return (
     <div className="w-full bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 overflow-hidden col-span-3">
-      <h4 className="text-md text-neutral-700 flex items-center">
+      <h4 className="text-md text-neutral-700 flex items-center font-semibold">
         <FaChartLine className="mr-2" />
-        Some Chart
+        Sales Chart Report
       </h4>
       <div style={{ width: "100%", height: 400 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={items}>
-            {/* Defining the gradient fills */}
+          <AreaChart
+            data={items}
+            margin={{ top: 10, right: 20, left: 0, bottom: 30 }}
+          >
             <defs>
-              <linearGradient
-                id="omzetGradient"
-                x1="0%"
-                y1="0%"
-                x2="0%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="#8884d8" stopOpacity={0.6} />
-                <stop offset="100%" stopColor="#8884d8" stopOpacity={0.1} />
+              <linearGradient id="omzetGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.6} />
+                <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.1} />
               </linearGradient>
-              <linearGradient
-                id="cogsGradient"
-                x1="0%"
-                y1="0%"
-                x2="0%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="#82ca9d" stopOpacity={0.6} />
-                <stop offset="100%" stopColor="#82ca9d" stopOpacity={0.1} />
+              <linearGradient id="cogsGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity={0.6} />
+                <stop offset="100%" stopColor="#10b981" stopOpacity={0.1} />
               </linearGradient>
               <linearGradient
                 id="netProfitGradient"
-                x1="0%"
-                y1="0%"
-                x2="0%"
-                y2="100%"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
               >
-                <stop offset="0%" stopColor="#ff7300" stopOpacity={0.6} />
-                <stop offset="100%" stopColor="#ff7300" stopOpacity={0.1} />
+                <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.6} />
+                <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.1} />
               </linearGradient>
-              <linearGradient
-                id="expenseGradient"
-                x1="0%"
-                y1="0%"
-                x2="0%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="#f4a261" stopOpacity={0.6} />
-                <stop offset="100%" stopColor="#f4a261" stopOpacity={0.1} />
+              <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ef4444" stopOpacity={0.6} />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.1} />
               </linearGradient>
             </defs>
 
-            {/* Grid */}
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
 
-            {/* X-Axis */}
-            <XAxis dataKey="date" />
+            <XAxis
+              dataKey="date"
+              angle={-35}
+              textAnchor="end"
+              interval={0}
+              height={60}
+              tick={{ fontSize: 12 }}
+              label={{
+                value: "Date",
+                position: "insideBottom",
+                offset: -20,
+                fontSize: 12,
+              }}
+            />
 
-            {/* Y-Axis */}
-            <YAxis tickFormatter={formatNumber} />
+            <YAxis
+              tickFormatter={formatNumber}
+              width={80}
+              tick={{ fontSize: 12 }}
+              label={{
+                value: "Jumlah (Rp)",
+                angle: -90,
+                position: "insideLeft",
+                fontSize: 12,
+              }}
+            />
 
-            {/* Tooltip */}
-            <Tooltip formatter={(value: number) => formatNumber(value)} />
+            <Tooltip
+              formatter={(value: number, name: string) => [
+                `Rp ${formatRupiah(value)}`,
+                name === "omzet"
+                  ? "Omzet"
+                  : name === "cogs"
+                  ? "COGS"
+                  : name === "netProfit"
+                  ? "Net Profit"
+                  : name === "expense"
+                  ? "Expense"
+                  : name,
+              ]}
+            />
 
-            {/* Legend */}
-            <Legend iconType="circle" />
+            <Legend iconType="circle" verticalAlign="top" height={36} />
 
-            {/* Area for Omzet */}
             <Area
               type="monotone"
               dataKey="omzet"
-              stroke="url(#omzetGradient)"
+              name="Omzet"
+              stroke="#4f46e5"
               fill="url(#omzetGradient)"
-              activeDot={{ r: 8 }}
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
             />
-
-            {/* Area for COGS */}
             <Area
               type="monotone"
               dataKey="cogs"
-              stroke="url(#cogsGradient)"
+              name="COGS"
+              stroke="#10b981"
               fill="url(#cogsGradient)"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
             />
-
-            {/* Area for Net Profit */}
             <Area
               type="monotone"
               dataKey="netProfit"
-              stroke="url(#netProfitGradient)"
+              name="Net Profit"
+              stroke="#f59e0b"
               fill="url(#netProfitGradient)"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
             />
-
-            {/* Area for Expense */}
             <Area
               type="monotone"
               dataKey="expense"
-              stroke="url(#expenseGradient)"
+              name="Expense"
+              stroke="#ef4444"
               fill="url(#expenseGradient)"
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              activeDot={{ r: 5 }}
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -297,5 +319,4 @@ const GridChart: React.FC<ChartProps> = ({ items }) => {
     </div>
   );
 };
-
 export default OverviewPage;

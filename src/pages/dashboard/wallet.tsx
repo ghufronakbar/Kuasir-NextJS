@@ -86,8 +86,16 @@ const WalletPage = () => {
                     <input
                       value={form.amount}
                       onChange={(e) => onChange(e, "amount")}
-                      placeholder="200"
+                      placeholder="170000"
                       type="number"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
+
+                    <Label className="mt-2 font-medium">Note</Label>
+                    <textarea
+                      value={form.note}
+                      onChange={(e) => onChange(e, "note")}
+                      placeholder="200"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                     />
 
@@ -215,12 +223,14 @@ interface Transfer {
   amount: number;
   from: $Enums.TransactionCategoryType;
   to: $Enums.TransactionCategoryType;
+  note: string;
 }
 
 const initTransfer: Transfer = {
   amount: 0,
   from: $Enums.TransactionCategoryType.Product,
   to: $Enums.TransactionCategoryType.Finance,
+  note: "",
 };
 
 const useTransfer = (
@@ -231,7 +241,9 @@ const useTransfer = (
   const [open, setOpen] = useState<boolean>(false);
 
   const onChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
     key: keyof Transfer
   ) => {
     setForm({ ...form, [key]: e.target.value });

@@ -395,7 +395,7 @@ const getChartData = async (
     const formattedDate = formatDate(outcome.createdAt, true);
     const existingData = data.find((d) => d.date === formattedDate);
     if (existingData) {
-      existingData.expense += outcome.amount;
+      existingData.expense += outcome.price;
     } else {
       data.push({
         date: formattedDate,
@@ -405,7 +405,7 @@ const getChartData = async (
         cash: 0,
         transfer: 0,
         qris: 0,
-        expense: outcome.amount,
+        expense: outcome.price,
       });
     }
   }
