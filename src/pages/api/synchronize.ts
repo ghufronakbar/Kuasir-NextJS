@@ -91,7 +91,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       for (const defect of defects) {
         totalDefect += defect.amount;
       }
-      const finalPrice = totalPrice / tempAmount;
+      const finalPrice = totalPrice / tempAmount || 0;
 
       for (let i = 0; i < recipes.length; i++) {
         const recipe = recipes[i];
