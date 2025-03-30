@@ -32,7 +32,12 @@ import {
   GiProfit,
   GiRawEgg,
 } from "react-icons/gi";
-import { MdCarRental, MdHistory, MdOutlinePayments } from "react-icons/md";
+import {
+  MdCarRental,
+  MdHistory,
+  MdOutlinePayments,
+  MdWallet,
+} from "react-icons/md";
 import { $Enums } from "@prisma/client";
 import { FaChartColumn, FaGears } from "react-icons/fa6";
 import { TbAsset, TbEyeDollar } from "react-icons/tb";
@@ -48,6 +53,12 @@ const links: LinkProps[] = [
         label: "Overview",
         href: "/dashboard/overview",
         icon: <SiGoogleanalytics className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Wallet",
+        href: "/dashboard/wallet",
+        icon: <MdWallet className={iconClassName} />,
         roles: ["OWNER"],
       },
       {

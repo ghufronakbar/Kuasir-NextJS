@@ -138,6 +138,75 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       response.stocks.push(ress);
     }
 
+    const orders = await db.order.findMany({
+      where: {
+        isDeleted: false,
+      },
+      select: {
+        total: true,
+        id: true,
+      },
+    });
+
+    const checkTrans = await db.transaction.findMany({
+      where: {
+        orderId: {
+          in: orders.map((order) => order.id),
+        },
+      },
+    });
+
+    const orderWithNoTrans = orders.filter(
+      (order) => !checkTrans.find((trans) => trans.orderId === order.id)
+    );
+
+    if (orderWithNoTrans.length > 0) {
+      await db.transaction.createMany({
+        data: orderWithNoTrans.map((order) => ({
+          orderId: order.id,
+          amount: order.total,
+          category: "Product",
+          subCategory: "Sell",
+          transaction: "Income",
+        })),
+      });
+    }
+
+    const outcomes = await db.outcome.findMany({
+      where: {
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        price: true,
+        adminFee: true,
+      },
+    });
+
+    const checkTransOutcomes = await db.transaction.findMany({
+      where: {
+        outcomeId: {
+          in: outcomes.map((o) => o.id),
+        },
+      },
+    });
+
+    const outcomeWithNoTrans = outcomes.filter(
+      (o) => !checkTransOutcomes.find((trans) => trans.outcomeId === o.id)
+    );
+
+    if (outcomeWithNoTrans.length > 0) {
+      await db.transaction.createMany({
+        data: outcomeWithNoTrans.map((out) => ({
+          outcomeId: out.id,
+          amount: out.price + out.adminFee,
+          category: "Product",
+          subCategory: "Expenditure",
+          transaction: "Expense",
+        })),
+      });
+    }
+
     return res.status(200).json({
       message:
         "Success to synchronize (stock(amount, average price by defect & sold), recipe(price per portion), product(cogs)), information(total balance)",

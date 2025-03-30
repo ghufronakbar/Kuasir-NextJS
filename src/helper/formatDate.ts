@@ -33,7 +33,9 @@ export const formatDate = (
   const monthName = listMonth[month];
 
   if (isWithTime) {
-    return `${date.getDate()} ${monthName}, ${year} ${date.getHours()}:${date.getMinutes()}`;
+    return `${("0" + date.getDate()).slice(-2)} ${monthName}, ${year} ${(
+      "0" + date.getHours()
+    ).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}`;
   }
   if (isFullDate) {
     return `${("0" + date.getDate()).slice(-2)} ${monthName}, ${year}`;

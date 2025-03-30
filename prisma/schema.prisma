@@ -257,6 +257,8 @@ model Transaction {
   amount      Float
   transaction TransactionType
 
+  sender TransactionCategoryType?
+
   orderId String?
   order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 

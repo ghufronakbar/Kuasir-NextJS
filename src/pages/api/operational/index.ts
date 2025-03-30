@@ -17,6 +17,26 @@ const GET = async (req: NextApiRequest, res: NextApiResponse<Api<Report>>) => {
       report.plus += transaction.amount;
     }
   }
+  const transfers = await db.transaction.findMany({
+    where: {
+      AND: [
+        {
+          isDeleted: false,
+        },
+        {
+          sender: "Operational",
+        },
+      ],
+    },
+    select: {
+      amount: true,
+    },
+  });
+
+  for (const transfer of transfers) {
+    report.minus += transfer.amount;
+    report.total -= transfer.amount;
+  }
   report.total = report.plus - report.minus;
   return res.status(200).json({ message: "OK", data: report });
 };

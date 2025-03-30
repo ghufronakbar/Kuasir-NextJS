@@ -10,12 +10,26 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
           isDeleted: false,
         },
         {
-          subCategory: "Transaction",
-        },
-        {
-          category: "Operational",
+          OR: [
+            {
+              AND: [
+                {
+                  subCategory: "Transaction",
+                },
+                {
+                  category: "Operational",
+                },
+              ],
+            },
+            {
+              sender: "Operational",
+            },
+          ],
         },
       ],
+    },
+    orderBy: {
+      createdAt: "desc",
     },
   });
 

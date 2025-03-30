@@ -9,7 +9,6 @@ import { api } from "@/config/api";
 import { Api } from "@/models/response";
 import { DetailProduct } from "@/models/schema";
 import { FaChartLine } from "react-icons/fa";
-import { MdBusiness } from "react-icons/md";
 import { LoadingPage } from "@/components/material/loading-page";
 
 const OverviewPage = () => {
@@ -18,55 +17,9 @@ const OverviewPage = () => {
   return (
     <DashboardLayout title="Overview">
       {data ? (
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="w-full flex flex-row flex-wrap gap-4 justify-between">
           <GridProduct items={data.chart.topProduct as DetailProduct[]} />
           <GridItemOrder items={data?.order} />
-          <GridFinance
-            title="Total Balance"
-            balance={
-              data?.report?.order?.total +
-              data?.report?.capital?.total +
-              data?.report?.finance?.total +
-              data?.report?.operational?.total
-            }
-            minus={
-              data?.report?.order?.minus +
-              data?.report?.capital?.minus +
-              data?.report?.finance?.minus +
-              data?.report?.operational?.minus
-            }
-            plus={
-              data?.report?.order?.plus +
-              data?.report?.capital?.plus +
-              data?.report?.finance?.plus +
-              data?.report?.operational?.plus
-            }
-          />
-          <GridFinance
-            title="Product Report"
-            balance={data?.report?.order?.total}
-            minus={data?.report?.order?.minus}
-            plus={data?.report?.order?.plus}
-          />
-          <GridFinance
-            title="Operational Report"
-            balance={data?.report?.operational?.total}
-            minus={data?.report?.operational?.minus}
-            plus={data?.report?.operational?.plus}
-          />
-          <GridFinance
-            title="Capital Report"
-            balance={data?.report?.capital?.total}
-            minus={data?.report?.capital?.minus}
-            plus={data?.report?.capital?.plus}
-          />
-          <GridFinance
-            title="Finance Report"
-            balance={data?.report?.finance?.total}
-            minus={data?.report?.finance?.minus}
-            plus={data?.report?.finance?.plus}
-          />
-
           <GridChart items={data.chart.chartAnnualy} />
         </div>
       ) : (
@@ -108,7 +61,7 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
 
   const isAll = item?.name === "All";
   return (
-    <div className="w-full h-60 bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2">
+    <div className="w-full md:w-[48%] h-60 bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2">
       <div className="flex flex-row items-center justify-between">
         <h2 className="text-md text-neutral-700">Sales</h2>
         <select
@@ -132,7 +85,7 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
               )}
             >
               {isPositiveOmzet ? "+" : ""}
-              {gap.omzet.toFixed(1)}%
+              {Number(gap?.omzet)?.toFixed(1)}%
             </span>
           )}
         </p>
@@ -149,7 +102,7 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
               )}
             >
               {isPositiveProfit ? "+" : ""}
-              {gap?.netProfit?.toFixed(1)}%
+              {Number(gap?.netProfit)?.toFixed(1)}%
             </span>
           )}
         </p>
@@ -169,7 +122,7 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
               )}
             >
               {isPositiveOrder ? "+" : ""}
-              {gap.orderItem.toFixed(1)}%
+              {Number(gap?.orderItem)?.toFixed(1)}%
             </span>
           )}
         </p>
@@ -183,7 +136,7 @@ interface ProductProps {
 }
 const GridProduct: React.FC<ProductProps> = ({ items }) => {
   return (
-    <div className="w-full bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 row-span-2 overflow-hidden overflow-x-auto">
+    <div className="w-full md:w-[48%] bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 overflow-hidden overflow-x-auto h-60">
       <h4 className="text-md text-neutral-700">Best Seller</h4>
       <div className="w-full flex flex-col gap-2">
         {items.map((item, index) => (
@@ -214,60 +167,6 @@ const GridProduct: React.FC<ProductProps> = ({ items }) => {
           </div>
         ))}
       </div>
-    </div>
-  );
-};
-
-interface FinanceProps {
-  balance: number;
-  plus: number;
-  minus: number;
-  title: string;
-}
-
-const GridFinance: React.FC<FinanceProps> = ({
-  minus,
-  plus,
-  balance,
-  title,
-}) => {
-  return (
-    <div className="w-full h-60 bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 overflow-hidden">
-      <h4 className="text-md text-neutral-700">{title}</h4>
-      <div>
-        <p className="text-sm text-neutral-600 font-normal">Balance</p>
-        <p className="text-3xl text-neutral-800 font-semibold">
-          {formatRupiah(balance)}{" "}
-        </p>
-      </div>
-      <div>
-        <p className="text-sm text-neutral-600 font-normal">To Be Received</p>
-        <p className="text-xl font-semibold text-green-500">
-          {formatRupiah(plus)}{" "}
-        </p>
-      </div>
-      <div>
-        <p className="text-sm text-neutral-600 font-normal">To Be Paid</p>
-        <p className="text-xl text-red-500 font-semibold">
-          {formatRupiah(minus)}
-        </p>
-      </div>
-    </div>
-  );
-};
-
-interface MasterProps {
-  title: string;
-  count: number;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const GridMaster: React.FC<MasterProps> = ({ title, count }) => {
-  return (
-    <div className="w-full h-60 bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 overflow-hidden">
-      <h4 className="text-md text-neutral-700">{title}</h4>
-      <p className="text-7xl text-neutral-800 font-semibold">{count}</p>
-      <MdBusiness className="text-3xl text-neutral-800" />
     </div>
   );
 };

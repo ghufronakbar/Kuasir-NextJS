@@ -1,12 +1,8 @@
 import { db } from "@/config/db";
 import formatDate from "@/helper/formatDate";
-import { DetailOrder, DetailProduct, Report } from "@/models/schema";
+import { DetailOrder, DetailProduct } from "@/models/schema";
 import { Outcome, Product } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
-
-/**
- Expected Output
- */
 
 export interface DataOrder {
   current: Sales;
@@ -39,12 +35,6 @@ export interface ReportOrder {
 
 export interface Overview {
   order: ReportOrder[];
-  report: {
-    order: Report;
-    operational: Report;
-    capital: Report;
-    finance: Report;
-  };
   chart: {
     chartAnnualy: ChartData[];
     chartMonthly: ChartData[];
@@ -64,9 +54,11 @@ export interface ChartData {
   expense: number;
 }
 
+// Filter data berdasarkan waktu untuk Daily, Weekly, dan Monthly
 const getDataOrderDaily = async (orders: DetailOrder[]): Promise<DataOrder> => {
-  const previousDate = new Date(new Date().setDate(new Date().getDate() - 1));
   const currDate = new Date();
+  const previousDate = new Date(currDate);
+  previousDate.setDate(currDate.getDate() - 1); // Mengurangi satu hari
 
   const previousOrders = orders.filter((order) => {
     const orderDate = new Date(order.createdAt);
@@ -147,9 +139,12 @@ const getDataOrderDaily = async (orders: DetailOrder[]): Promise<DataOrder> => {
 const getDataOrderWeekly = async (
   orders: DetailOrder[]
 ): Promise<DataOrder> => {
-  const previousDate = new Date(new Date().setDate(new Date().getDate() - 7));
-  const fourteenDate = new Date(new Date().setDate(new Date().getDate() - 14));
   const currDate = new Date();
+  const previousDate = new Date(currDate);
+  previousDate.setDate(currDate.getDate() - 7); // Mengurangi tujuh hari untuk minggu lalu
+
+  const fourteenDate = new Date(currDate);
+  fourteenDate.setDate(currDate.getDate() - 14); // Empat belas hari yang lalu untuk rentang minggu lalu
 
   const previousOrders = orders.filter((order) => {
     const orderDate = new Date(order.createdAt);
@@ -179,7 +174,6 @@ const getDataOrderWeekly = async (
         order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0),
       0
     ) || 0;
-
   const currNetProfit = currOmzet - currCogs;
 
   const prevOmzet = previousOrders.reduce((acc, order) => acc + order.total, 0);
@@ -233,13 +227,13 @@ const getDataOrderWeekly = async (
 const getDataOrderMonthly = async (
   orders: DetailOrder[]
 ): Promise<DataOrder> => {
-  const previousMonth = new Date(
-    new Date().setMonth(new Date().getMonth() - 1)
-  );
   const currDate = new Date();
+  const previousMonth = new Date(currDate);
+  previousMonth.setMonth(currDate.getMonth() - 1); // Mengurangi satu bulan
 
   const previousOrders = orders.filter((order) => {
     const orderDate = new Date(order.createdAt);
+    console.log({ previousMonth, orderDate });
     return (
       orderDate.getFullYear() === previousMonth.getFullYear() &&
       orderDate.getMonth() === previousMonth.getMonth()
@@ -309,6 +303,7 @@ const getDataOrderMonthly = async (
       orderItem: ((currOrderItem - prevOrderItem) / prevOrderItem) * 100 || 0,
     },
   };
+
   return data;
 };
 
@@ -473,6 +468,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     },
     select: {
       total: true,
+      createdAt: true,
       orderItems: {
         orderBy: {
           createdAt: "desc",
@@ -522,14 +518,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     (d) => Number(d.date.slice(-2)) <= sevenDaysAgo
   );
 
-  const [reportCapital, reportFinance, reportOperational, reportOrder] =
-    await Promise.all([
-      getReportCapital(),
-      getReportFinance(),
-      getReportOperational(),
-      getReportOrder(),
-    ]);
-
   const data: Overview = {
     order: [
       { ...allData, name: "All" },
@@ -537,16 +525,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       { ...monthlyData, name: "Monthly" },
       { ...weeklyData, name: "Weekly" },
     ],
-    report: {
-      capital: reportCapital,
-      finance: reportFinance,
-      operational: reportOperational,
-      order: reportOrder,
-    },
     chart: {
-      chartMonthly: monthlyChart,
-      chartAnnualy: annualChart,
-      chartWeekly: weeklyChart,
+      chartMonthly: monthlyChart.reverse(),
+      chartAnnualy: annualChart.reverse(),
+      chartWeekly: weeklyChart.reverse(),
       topProduct: bestProduct as DetailProduct[],
     },
   };
@@ -555,139 +537,3 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 };
 
 export default handler;
-
-const getReportCapital = async (): Promise<Report> => {
-  const data = {
-    total: 0,
-    plus: 0,
-    minus: 0,
-  };
-  const capitals = await db.transaction.findMany({
-    where: {
-      AND: [
-        {
-          isDeleted: false,
-        },
-        {
-          category: "Capital",
-        },
-      ],
-    },
-    select: {
-      transaction: true,
-      amount: true,
-    },
-  });
-  for (const capital of capitals) {
-    if (capital.transaction === "Expense") {
-      data.minus += capital.amount;
-      data.total -= capital.amount;
-    } else {
-      data.plus += capital.amount;
-      data.total += capital.amount;
-    }
-  }
-  return data;
-};
-
-const getReportFinance = async (): Promise<Report> => {
-  const data = {
-    total: 0,
-    plus: 0,
-    minus: 0,
-  };
-  const finances = await db.transaction.findMany({
-    where: {
-      AND: [
-        {
-          isDeleted: false,
-        },
-        {
-          category: "Finance",
-        },
-      ],
-    },
-    select: {
-      transaction: true,
-      amount: true,
-    },
-  });
-  for (const finance of finances) {
-    if (finance.transaction === "Expense") {
-      data.minus += finance.amount;
-      data.total -= finance.amount;
-    } else {
-      data.plus += finance.amount;
-      data.total += finance.amount;
-    }
-  }
-  return data;
-};
-
-const getReportOperational = async (): Promise<Report> => {
-  const data = {
-    total: 0,
-    plus: 0,
-    minus: 0,
-  };
-  const operationals = await db.transaction.findMany({
-    where: {
-      AND: [
-        {
-          isDeleted: false,
-        },
-        {
-          category: "Operational",
-        },
-      ],
-    },
-    select: {
-      transaction: true,
-      amount: true,
-    },
-  });
-  for (const operational of operationals) {
-    if (operational.transaction === "Expense") {
-      data.minus += operational.amount;
-      data.total -= operational.amount;
-    } else {
-      data.plus += operational.amount;
-      data.total += operational.amount;
-    }
-  }
-  return data;
-};
-
-const getReportOrder = async (): Promise<Report> => {
-  const data = {
-    total: 0,
-    plus: 0,
-    minus: 0,
-  };
-  const operationals = await db.transaction.findMany({
-    where: {
-      AND: [
-        {
-          isDeleted: false,
-        },
-        {
-          category: "Product",
-        },
-      ],
-    },
-    select: {
-      transaction: true,
-      amount: true,
-    },
-  });
-  for (const operational of operationals) {
-    if (operational.transaction === "Expense") {
-      data.minus += operational.amount;
-      data.total -= operational.amount;
-    } else {
-      data.plus += operational.amount;
-      data.total += operational.amount;
-    }
-  }
-  return data;
-};

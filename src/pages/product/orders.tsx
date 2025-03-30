@@ -178,6 +178,7 @@ const useOrders = (business: $Enums.Business) => {
       (order) => order.business === (business as $Enums.Business)
     )
   );
+  console.log({ d, data, business });
 
   const fetchData = async () => {
     setLoading(true);
