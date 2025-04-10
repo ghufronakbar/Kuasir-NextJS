@@ -1,7 +1,7 @@
 import { db } from "@/config/db";
 import formatDate from "@/helper/formatDate";
-import { DetailOrder, DetailProduct } from "@/models/schema";
-import { Outcome, Product } from "@prisma/client";
+import { DetailOrder } from "@/models/schema";
+import { Transaction } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 export interface DataOrder {
@@ -39,18 +39,22 @@ export interface Overview {
     chartAnnualy: ChartData[];
     chartMonthly: ChartData[];
     chartWeekly: ChartData[];
-    topProduct: Product[]; //top 5
+    topProduct: BestProduct[];
   };
+}
+
+export interface BestProduct {
+  image: string | null;
+  name: string;
+  merchant: string;
+  sold: number;
+  price: number;
 }
 
 export interface ChartData {
   date: string;
   omzet: number;
-  cogs: number;
   netProfit: number;
-  cash: number;
-  transfer: number;
-  qris: number;
   expense: number;
 }
 
@@ -352,115 +356,100 @@ const getAllDataOrder = async (orders: DetailOrder[]): Promise<DataOrder> => {
 };
 
 const getChartData = async (
-  orders: DetailOrder[],
-  outcomes: Outcome[]
+  transaction: Transaction[]
 ): Promise<ChartData[]> => {
   const data: ChartData[] = [];
-  for (const order of orders) {
-    const formattedDate = formatDate(order.createdAt, true);
-    const existingData = data.find((d) => d.date === formattedDate);
-    if (existingData) {
-      existingData.omzet += order.total;
-      existingData.cogs += order.orderItems.reduce(
-        (acc, item) => acc + item.product.cogs,
-        0
-      );
-      existingData.netProfit +=
-        order.total -
-        order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0);
-      existingData.cash += order.method === "Cash" ? order.total : 0;
-      existingData.transfer += order.method === "Transfer" ? order.total : 0;
-      existingData.qris += order.method === "QRIS" ? order.total : 0;
-      existingData.expense += 0;
+
+  const expenses = transaction.filter(
+    (item) => item.category === "Product" && item.transaction === "Expense"
+  );
+  const incomes = transaction.filter(
+    (item) => item.category === "Product" && item.transaction === "Income"
+  );
+
+  for (const item of expenses) {
+    const onlyDate = item?.createdAt?.toISOString()?.split("T")[0];
+
+    const findData = data.find((data) => data.date === onlyDate);
+
+    if (findData) {
+      findData.expense += item.amount;
+      findData.omzet -= item.amount;
     } else {
       data.push({
-        date: formattedDate,
-        omzet: order.total,
-        cogs: order.orderItems.reduce(
-          (acc, item) => acc + item.product.cogs,
-          0
-        ),
-        netProfit:
-          order.total -
-          order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0),
-        cash: order.method === "Cash" ? order.total : 0,
-        transfer: order.method === "Transfer" ? order.total : 0,
-        qris: order.method === "QRIS" ? order.total : 0,
-        expense: 0,
+        date: onlyDate,
+        expense: -item.amount,
+        omzet: 0,
+        netProfit: 0,
       });
+    }
+
+    for (const item of incomes) {
+      const onlyDate = item?.createdAt?.toISOString()?.split("T")[0];
+
+      const findData = data.find((data) => data.date === onlyDate);
+
+      if (findData) {
+        findData.netProfit += item.amount;
+        findData.omzet += item.amount;
+      } else {
+        data.push({
+          date: onlyDate,
+          expense: 0,
+          omzet: item.amount,
+          netProfit: item.amount,
+        });
+      }
     }
   }
 
-  for (const outcome of outcomes) {
-    const formattedDate = formatDate(outcome.createdAt, true);
-    const existingData = data.find((d) => d.date === formattedDate);
-    if (existingData) {
-      existingData.expense += outcome.price;
-    } else {
-      data.push({
-        date: formattedDate,
-        omzet: 0,
-        cogs: 0,
-        netProfit: 0,
-        cash: 0,
-        transfer: 0,
-        qris: 0,
-        expense: outcome.price,
-      });
-    }
-  }
   return data;
 };
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  const bestProduct = await db.product.findMany({
+  const bestProduct: BestProduct[] = [];
+
+  const orderItems = await db.orderItem.findMany({
     where: {
       isDeleted: false,
     },
-    orderBy: {
-      orderItems: {
-        _count: "desc",
-      },
-    },
     select: {
-      id: true,
-      image: true,
-      name: true,
-      price: true,
-      orderItems: {
-        where: {
-          AND: [
-            {
-              isDeleted: false,
-            },
-            {
-              order: {
-                isDeleted: false,
-              },
-            },
-          ],
-        },
+      product: {
         select: {
-          amount: true,
+          image: true,
+          price: true,
+          name: true,
         },
       },
-      _count: {
+      amount: true,
+      order: {
         select: {
-          orderItems: true,
+          merchant: true,
         },
       },
     },
-    take: 5,
   });
 
-  for (const product of bestProduct) {
-    product._count.orderItems = product.orderItems.reduce(
-      (acc, item) => acc + item.amount,
-      0
+  for (const orderItem of orderItems) {
+    const findProduct = bestProduct.find(
+      (item) =>
+        item.name === orderItem.product.name &&
+        item.merchant === orderItem.order.merchant
     );
+    if (findProduct) {
+      findProduct.sold += orderItem.amount;
+    } else {
+      bestProduct.push({
+        name: orderItem.product.name,
+        image: orderItem.product.image,
+        merchant: orderItem.order.merchant,
+        sold: orderItem.amount,
+        price: orderItem.product.price,
+      });
+    }
   }
 
-  bestProduct.sort((a, b) => b._count.orderItems - a._count.orderItems);
+  bestProduct.sort((a, b) => b.sold - a.sold);
 
   const orders = await db.order.findMany({
     orderBy: {
@@ -496,16 +485,23 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const weeklyData = await getDataOrderWeekly(orders as DetailOrder[]);
   const allData = await getAllDataOrder(orders as DetailOrder[]);
 
-  const outcomes = await db.outcome.findMany({
+  const trans = await db.transaction.findMany({
     orderBy: {
       createdAt: "desc",
     },
     where: {
       isDeleted: false,
     },
+    select: {
+      category: true,
+      createdAt: true,
+      amount: true,
+      subCategory: true,
+      transaction: true,
+    },
   });
 
-  const chartData = await getChartData(orders as DetailOrder[], outcomes);
+  const chartData = await getChartData(trans as Transaction[]);
 
   const year = new Date().getFullYear().toString();
   const sevenDaysAgo = new Date().getDate() - 7;
@@ -529,7 +525,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       chartMonthly: monthlyChart.reverse(),
       chartAnnualy: annualChart.reverse(),
       chartWeekly: weeklyChart.reverse(),
-      topProduct: bestProduct as DetailProduct[],
+      topProduct: bestProduct,
     },
   };
 

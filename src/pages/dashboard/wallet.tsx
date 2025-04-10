@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import formatRupiah from "@/helper/formatRupiah";
 import { useEffect, useState } from "react";
@@ -118,36 +119,26 @@ const WalletPage = () => {
           <GridFinance
             title="Total Balance"
             balance={data?.report.all.total}
-            minus={data?.report?.all?.minus}
-            plus={data?.report?.all?.plus}
             className="w-full"
           />
           <GridFinance
             title="Product Report"
             balance={data?.report?.order?.total}
-            minus={data?.report?.order?.minus}
-            plus={data?.report?.order?.plus}
             className="w-full md:w-[48%] lg:w-[24%]"
           />
           <GridFinance
             title="Operational Report"
             balance={data?.report?.operational?.total}
-            minus={data?.report?.operational?.minus}
-            plus={data?.report?.operational?.plus}
             className="w-full md:w-[48%] lg:w-[24%]"
           />
           <GridFinance
             title="Capital Report"
             balance={data?.report?.capital?.total}
-            minus={data?.report?.capital?.minus}
-            plus={data?.report?.capital?.plus}
             className="w-full md:w-[48%] lg:w-[24%]"
           />
           <GridFinance
             title="Finance Report"
             balance={data?.report?.finance?.total}
-            minus={data?.report?.finance?.minus}
-            plus={data?.report?.finance?.plus}
             className="w-full md:w-[48%] lg:w-[24%]"
           />
         </div>
@@ -175,19 +166,11 @@ const useWallet = () => {
 
 interface FinanceProps {
   balance: number;
-  plus: number;
-  minus: number;
   title: string;
   className?: string;
 }
 
-const GridFinance: React.FC<FinanceProps> = ({
-  minus,
-  plus,
-  balance,
-  title,
-  className,
-}) => {
+const GridFinance: React.FC<FinanceProps> = ({ balance, title, className }) => {
   return (
     <div
       className={cn(
@@ -198,20 +181,13 @@ const GridFinance: React.FC<FinanceProps> = ({
       <h4 className="text-md text-neutral-700">{title}</h4>
       <div>
         <p className="text-sm text-neutral-600 font-normal">Balance</p>
-        <p className="text-3xl text-neutral-800 font-semibold">
+        <p
+          className={cn(
+            "text-3xl font-semibold",
+            balance > 0 ? "text-neutral-800" : "text-red-500"
+          )}
+        >
           {formatRupiah(balance)}{" "}
-        </p>
-      </div>
-      <div>
-        <p className="text-sm text-neutral-600 font-normal">To Be Received</p>
-        <p className="text-xl font-semibold text-green-500">
-          {formatRupiah(plus)}{" "}
-        </p>
-      </div>
-      <div>
-        <p className="text-sm text-neutral-600 font-normal">To Be Paid</p>
-        <p className="text-xl text-red-500 font-semibold">
-          {formatRupiah(minus)}
         </p>
       </div>
     </div>
