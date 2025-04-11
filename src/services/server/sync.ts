@@ -4,6 +4,7 @@ import { SynchonizeData } from "@/pages/api/synchronize";
 import axios from "axios";
 
 export const sync = async () => {
+  return
   const url = BASE_URL + "/api/synchronize";
   const { data } = await axios.post<Api<SynchonizeData>>(url);
   return data.data;
