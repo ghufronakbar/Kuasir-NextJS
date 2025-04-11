@@ -122,7 +122,7 @@ const OverviewPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
           <GridFinance
             title="Total Balance"
-            balance={wallet?.report?.order?.total}
+            balance={wallet?.report?.all?.total}
             className="w-full h-full col-span-1 lg:col-span-2 xl:col-span-2"
           />
           <GridItemOrder items={data?.order} />
