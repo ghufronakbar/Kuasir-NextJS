@@ -1,4 +1,5 @@
 import {
+  Customer,
   Defect,
   LogActivity,
   Order,
@@ -43,6 +44,7 @@ export interface DetailDefect extends Defect {
 
 export interface DetailOrder extends Order {
   orderItems: DetailOrderItem[];
+  customer: DetailCustomer | null;
   _count: { orderItems: number };
 }
 
@@ -83,3 +85,9 @@ export const initReport: Report = {
   minus: 0,
   plus: 0,
 };
+
+// CUSTOMER
+
+export interface DetailCustomer extends Customer {
+  orders: DetailOrder[];
+}

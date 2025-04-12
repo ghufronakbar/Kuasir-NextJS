@@ -26,7 +26,7 @@ const CashierPage = () => {
     increment,
     decrement,
     onChange,
-    form: form,
+    form,
     MERCHANTS,
     PAYMENT_METHODS,
     total,
@@ -110,6 +110,29 @@ const CashierPage = () => {
                         </option>
                       ))}
                     </select>
+                    <Label className="mt-2 font-medium">Customer Name*</Label>
+                    <input
+                      className="w-full p-2 border border-gray-200 rounded-lg shadow"
+                      value={form.name}
+                      onChange={(e) => onChange(e, "name")}
+                      placeholder="Eren Yeager"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      *Optional
+                    </span>
+                    <Label className="mt-2 font-medium">
+                      Customer Phone / Email**
+                    </Label>
+                    <input
+                      className="w-full p-2 border border-gray-200 rounded-lg shadow"
+                      value={form.code}
+                      onChange={(e) => onChange(e, "code")}
+                      type="number"
+                      placeholder="62812345678"
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      **If Phone Start With 62
+                    </span>
                     <Button
                       type="submit"
                       className="bg-teal-500 font-semibold text-white mt-4"
@@ -244,12 +267,16 @@ interface OrderDTO {
   merchant: string;
   method: string;
   business: $Enums.Business;
+  name: string;
+  code: string;
 }
 
 export const initOrderDTO: OrderDTO = {
   merchant: $Enums.Merchant.GrabFood,
   method: $Enums.PaymentMethod.QRIS,
   business: "Haykatuju",
+  name: "",
+  code: "",
 };
 
 interface CartItem extends DetailProduct {

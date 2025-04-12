@@ -51,7 +51,20 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 const POST = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { body } = req;
-    const { merchant, method, business, orderItems } = body;
+    const { merchant, method, business, orderItems, name, code } = body;
+
+    if (code && (typeof code !== "string" || !/^62\d{11,12}@?.*$/.test(code))) {
+      return res
+        .status(400)
+        .json({ message: "Code must be a valid email or phone start with 62" });
+    }
+
+    let codeType = "Email";
+    if (code && /^62\d{11,12}@?.*$/.test(code)) {
+      codeType = "Phone";
+    } else {
+      codeType = "Email";
+    }
 
     if (!merchant || !method || !business)
       return res.status(400).json({ message: "Please fill all fields" });
@@ -131,6 +144,20 @@ const POST = async (req: NextApiRequest, res: NextApiResponse) => {
           $Enums.PaymentMethod[method as keyof typeof $Enums.PaymentMethod],
         business: business as $Enums.Business,
         total,
+        customer: code
+          ? {
+              connectOrCreate: {
+                where: {
+                  id: code,
+                },
+                create: {
+                  id: code,
+                  name: name || "Pelanggan Tercinta",
+                  type: codeType as $Enums.CustomerType,
+                },
+              },
+            }
+          : undefined,
         orderItems: {
           createMany: {
             data: orderItems,

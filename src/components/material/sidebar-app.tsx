@@ -36,7 +36,7 @@ import {
   MdCarRental,
   MdHistory,
   MdOutlinePayments,
-  MdWallet,
+  MdPeople,
 } from "react-icons/md";
 import { $Enums } from "@prisma/client";
 import { FaChartColumn, FaGears } from "react-icons/fa6";
@@ -56,15 +56,15 @@ const links: LinkProps[] = [
         roles: ["OWNER"],
       },
       {
-        label: "Wallet",
-        href: "/dashboard/wallet",
-        icon: <MdWallet className={iconClassName} />,
-        roles: ["OWNER"],
-      },
-      {
         label: "Employee",
         href: "/dashboard/employee",
         icon: <FaPeopleArrows className={iconClassName} />,
+        roles: ["OWNER"],
+      },
+      {
+        label: "Customer",
+        href: "/dashboard/customer",
+        icon: <MdPeople className={iconClassName} />,
         roles: ["OWNER"],
       },
     ],

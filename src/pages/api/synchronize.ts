@@ -10,169 +10,268 @@ export interface SynchonizeData {
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    const response: SynchonizeData = {
-      stocks: [],
-      recipes: [],
-      products: [],
-    };
+    await Promise.all([syncPrice(), syncStock(), syncTransaction()]);
+    // await syncPrice();
+    // await syncStock();
+    // await syncTransaction();
+    return res.status(200).json({ message: "Hello World" });
+  } catch (error) {
+    console.error(error);
+    if (error instanceof Error) {
+      return res
+        .status(500)
+        .json({ message: "Internal Server Error", error: error });
+    } else {
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+};
 
-    const stocks = await db.stock.findMany({
-      where: {
-        isDeleted: false,
-      },
-      select: {
-        id: true,
-        averagePrice: true,
-        quantity: true,
-        name: true,
-        defects: {
-          select: {
-            amount: true,
-          },
-          where: {
-            isDeleted: false,
+const syncPrice = async () => {
+  const stocks = await db.stock.findMany({
+    select: {
+      id: true,
+      outcomes: {
+        where: {
+          isDeleted: false,
+        },
+        select: {
+          amount: true,
+          price: true,
+          stock: {
+            select: {
+              id: true,
+            },
           },
         },
-        recipes: {
-          where: {
+      },
+    },
+    where: {
+      isDeleted: false,
+    },
+  });
+
+  // Menghitung totalAmountBuy dan totalPrice secara paralel
+  const stockUpdates = stocks.map((stock) => {
+    const totalAmountBuy = stock.outcomes.reduce(
+      (prev, curr) => prev + curr.amount,
+      0
+    );
+
+    const totalPrice = stock.outcomes.reduce(
+      (prev, curr) => prev + curr.price,
+      0
+    );
+    const averagePrice = totalPrice / totalAmountBuy;
+
+    return db.stock.update({
+      where: {
+        id: stock.id,
+      },
+      data: {
+        averagePrice: averagePrice || 0,
+        quantity: totalAmountBuy || 0,
+      },
+    });
+  });
+
+  // Menunggu semua update stock selesai
+  await Promise.all(stockUpdates);
+
+  // Mengambil data resep dan menghitung harga resep secara paralel
+  const recipes = await db.recipe.findMany({
+    where: {
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+      amount: true,
+      stock: {
+        select: {
+          averagePrice: true,
+        },
+      },
+    },
+  });
+
+  const recipeUpdates = recipes.map((recipe) => {
+    return db.recipe.update({
+      where: {
+        id: recipe.id,
+      },
+      data: {
+        price: recipe.stock.averagePrice * recipe.amount || 0,
+      },
+    });
+  });
+
+  // Menunggu semua update resep selesai
+  await Promise.all(recipeUpdates);
+
+  // Mengambil data produk dan menghitung cogs secara paralel
+  const products = await db.product.findMany({
+    where: {
+      isDeleted: false,
+    },
+    select: {
+      id: true,
+      recipes: {
+        where: {
+          isDeleted: false,
+        },
+        select: {
+          price: true,
+        },
+      },
+    },
+  });
+
+  const productUpdates = products.map((product) => {
+    const cogs = product.recipes.reduce((prev, curr) => prev + curr.price, 0);
+
+    return db.product.update({
+      where: {
+        id: product.id,
+      },
+      data: {
+        cogs,
+      },
+    });
+  });
+
+  // Menunggu semua update produk selesai
+  await Promise.all(productUpdates);
+};
+
+const syncStock = async () => {
+  const [orderItems, outcomes, stocks, defects] = await Promise.all([
+    db.orderItem.findMany({
+      where: {
+        AND: [
+          {
             isDeleted: false,
           },
+          {
+            order: {
+              isDeleted: false,
+            },
+          },
+        ],
+      },
+      select: {
+        amount: true,
+        product: {
           select: {
-            amount: true,
-            price: true,
-            id: true,
-            product: {
+            recipes: {
+              where: {
+                isDeleted: false,
+              },
               select: {
-                id: true,
-                orderItems: {
-                  where: {
-                    AND: [
-                      {
-                        isDeleted: false,
-                      },
-                      {
-                        order: {
-                          isDeleted: false,
-                        },
-                      },
-                    ],
-                  },
+                amount: true,
+                stock: {
                   select: {
-                    amount: true,
+                    id: true,
                   },
                 },
               },
             },
           },
         },
-        outcomes: {
-          where: {
-            isDeleted: false,
-          },
-          select: {
-            amount: true,
-            price: true,
-          },
-        },
       },
-    });
+    }),
 
-    let cogs = 0;
-    for (const stock of stocks) {
-      const { outcomes, defects, recipes } = stock;
-      let tempAmount = 0;
-      let totalDefect = 0;
-      let totalPrice = 0;
-      let totalAmountSold = 0;
-      for (const outcome of outcomes) {
-        tempAmount += outcome.amount;
-        totalPrice += outcome.price;
-      }
-      for (const defect of defects) {
-        totalDefect += defect.amount;
-      }
-      const finalPrice = totalPrice / tempAmount || 0;
-
-      for (let i = 0; i < recipes.length; i++) {
-        const recipe = recipes[i];
-        const price = recipe.amount * finalPrice;
-        cogs += price;
-        const resss = await db.recipe.update({
-          where: {
-            id: recipe.id,
-          },
-          data: {
-            price,
-          },
-        });
-        response.recipes.push(resss);
-
-        for (const orderItem of recipe.product.orderItems) {
-          totalAmountSold += orderItem.amount * recipe.amount;
-        }
-
-        if (i === recipes.length - 1) {
-          const ressss = await db.product.update({
-            where: {
-              id: recipe.product.id,
-            },
-            data: {
-              cogs,
-            },
-          });
-          response.products.push(ressss);
-        }
-      }
-
-      const FINAL_AMOUNT = tempAmount - totalDefect - totalAmountSold;
-
-      const ress = await db.stock.update({
-        where: {
-          id: stock.id,
-        },
-        data: {
-          averagePrice: finalPrice,
-          quantity: FINAL_AMOUNT,
-        },
-      });
-      response.stocks.push(ress);
-    }
-
-    const orders = await db.order.findMany({
+    db.outcome.findMany({
       where: {
         isDeleted: false,
       },
       select: {
-        total: true,
-        id: true,
-      },
-    });
-
-    const checkTrans = await db.transaction.findMany({
-      where: {
-        orderId: {
-          in: orders.map((order) => order.id),
+        amount: true,
+        stock: {
+          select: {
+            id: true,
+          },
         },
       },
-    });
+    }),
 
-    const orderWithNoTrans = orders.filter(
-      (order) => !checkTrans.find((trans) => trans.orderId === order.id)
-    );
+    db.stock.findMany({
+      where: {
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+      },
+    }),
 
-    if (orderWithNoTrans.length > 0) {
-      await db.transaction.createMany({
-        data: orderWithNoTrans.map((order) => ({
-          orderId: order.id,
-          amount: order.total,
-          category: "Product",
-          subCategory: "Sell",
-          transaction: "Income",
-        })),
-      });
+    db.defect.findMany({
+      where: {
+        isDeleted: false,
+      },
+      select: {
+        amount: true,
+        stock: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  // Memproses data dan mengumpulkan semua update untuk stock
+  const stockUpdates = stocks.map((stock) => {
+    let totalUsed = 0;
+    let totalBuy = 0;
+    let totalBroken = 0;
+
+    for (const orderItem of orderItems) {
+      for (const recipe of orderItem.product.recipes) {
+        if (recipe.stock.id === stock.id) {
+          totalUsed += orderItem.amount * recipe.amount;
+        }
+      }
     }
 
-    const outcomes = await db.outcome.findMany({
+    for (const outcome of outcomes) {
+      if (outcome.stock.id === stock.id) {
+        totalBuy += outcome.amount;
+      }
+    }
+
+    for (const defect of defects) {
+      if (defect.stock.id === stock.id) {
+        totalBroken += defect.amount;
+      }
+    }
+
+    const totalQuantity = totalBuy - totalUsed - totalBroken;
+
+    return db.stock.update({
+      where: {
+        id: stock.id,
+      },
+      data: {
+        quantity: totalQuantity,
+      },
+    });
+  });
+
+  // Menunggu semua update stock selesai
+  await Promise.all(stockUpdates);
+};
+
+const syncTransaction = async () => {
+  const [orders, outcomes] = await Promise.all([
+    db.order.findMany({
+      where: {
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        total: true,
+      },
+    }),
+    db.outcome.findMany({
       where: {
         isDeleted: false,
       },
@@ -181,41 +280,53 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         price: true,
         adminFee: true,
       },
-    });
+    }),
+  ]);
 
-    const checkTransOutcomes = await db.transaction.findMany({
+  const [checkTransOrders, checkTransOutcomes] = await Promise.all([
+    db.transaction.findMany({
+      where: {
+        orderId: {
+          in: orders.map((order) => order.id),
+        },
+      },
+    }),
+    db.transaction.findMany({
       where: {
         outcomeId: {
           in: outcomes.map((o) => o.id),
         },
       },
-    });
+    }),
+  ]);
 
-    const outcomeWithNoTrans = outcomes.filter(
-      (o) => !checkTransOutcomes.find((trans) => trans.outcomeId === o.id)
-    );
+  const orderWithNoTrans = orders.filter(
+    (order) => !checkTransOrders.find((trans) => trans.orderId === order.id)
+  );
+  const outcomeWithNoTrans = outcomes.filter(
+    (o) => !checkTransOutcomes.find((trans) => trans.outcomeId === o.id)
+  );
 
-    if (outcomeWithNoTrans.length > 0) {
-      await db.transaction.createMany({
-        data: outcomeWithNoTrans.map((out) => ({
-          outcomeId: out.id,
-          amount: out.price + out.adminFee,
-          category: "Product",
-          subCategory: "Expenditure",
-          transaction: "Expense",
-        })),
-      });
-    }
-
-    return res.status(200).json({
-      message:
-        "Success to synchronize (stock(amount, average price by defect & sold), recipe(price per portion), product(cogs)), information(total balance)",
-      data: response,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Internal Server Error" });
-  }
+  await Promise.all([
+    db.transaction.createMany({
+      data: orderWithNoTrans.map((order) => ({
+        orderId: order.id,
+        amount: order.total,
+        category: "Product",
+        subCategory: "Sell",
+        transaction: "Income",
+      })),
+    }),
+    db.transaction.createMany({
+      data: outcomeWithNoTrans.map((out) => ({
+        outcomeId: out.id,
+        amount: out.price + out.adminFee,
+        category: "Product",
+        subCategory: "Expenditure",
+        transaction: "Expense",
+      })),
+    }),
+  ]);
 };
 
 export default handler;
