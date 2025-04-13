@@ -19,9 +19,9 @@ const GET = async (req: NextApiRequest, res: NextApiResponse) => {
 
 const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
   const id = (req.query.id as string) || "";
-  const { description, amount, note } = req.body;
+  const { description, amount, note, date } = req.body;
 
-  if (!description || !amount)
+  if (!description || !amount || !date)
     return res.status(400).json({ message: "All fields are required" });
 
   if (isNaN(Number(amount)))
@@ -29,6 +29,9 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
 
   if (Number(amount) < 0)
     return res.status(400).json({ message: "Invalid amount" });
+
+  if (isNaN(Date.parse(date)))
+    return res.status(400).json({ message: "Invalid date" });
 
   const transaction = await db.transaction.update({
     data: {
@@ -38,6 +41,7 @@ const PUT = async (req: NextApiRequest, res: NextApiResponse) => {
       amount: Number(amount),
       transaction: "Expense",
       note,
+      createdAt: new Date(date),
     },
     where: {
       id,

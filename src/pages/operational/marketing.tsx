@@ -92,6 +92,14 @@ const MarketingPage = () => {
                       type="number"
                       className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
                     />
+                    <Label className="mt-2 font-medium">Date</Label>
+                    <input
+                      value={form.date || new Date()?.toISOString()?.split?.("T")?.[0]}
+                      onChange={(e) => onChange(e, "date")}
+                      placeholder="200"
+                      type="date"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-md bg-neutral-50"
+                    />
                     <Label className="mt-2 font-medium">Note</Label>
                     <textarea
                       value={form.note}
@@ -177,6 +185,7 @@ interface OutcomeDTO {
   description: string;
   amount: number;
   note: string;
+  date: string;
 }
 
 const initOutcomeDTO: OutcomeDTO = {
@@ -184,6 +193,7 @@ const initOutcomeDTO: OutcomeDTO = {
   description: "",
   amount: 0,
   note: "",
+  date: new Date()?.toISOString()?.split?.("T")?.[0],
 };
 
 const useMarketing = () => {
@@ -228,6 +238,7 @@ const useMarketing = () => {
       description: item.description || "",
       id: item.id,
       note: item.note || "",
+      date: item.createdAt.toString(),
     });
   };
 

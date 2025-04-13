@@ -1,7 +1,6 @@
 import { db } from "@/config/db";
 import formatDate from "@/helper/formatDate";
-import { DetailOrder } from "@/models/schema";
-import { Transaction } from "@prisma/client";
+import { $Enums, Transaction } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
 export interface DataOrder {
@@ -12,25 +11,13 @@ export interface DataOrder {
 
 interface Sales {
   omzet: number;
-  cogs: number;
+  expense: number;
+  operational: number;
   netProfit: number;
-  order: number;
-  orderItem: number;
 }
 
-export interface SalesDetail {
-  omzet: number;
-  cogs: number;
-  netProfit: number;
-  order: number;
-  orderItem: number;
-}
-
-export interface ReportOrder {
+export interface ReportOrder extends DataOrder {
   name: string;
-  current: SalesDetail;
-  previous: SalesDetail;
-  gap: SalesDetail;
 }
 
 export interface Overview {
@@ -59,89 +46,121 @@ export interface ChartData {
 }
 
 // Filter data berdasarkan waktu untuk Daily, Weekly, dan Monthly
-const getDataOrderDaily = async (orders: DetailOrder[]): Promise<DataOrder> => {
+
+interface TransactionInput {
+  createdAt: Date;
+  category: $Enums.TransactionCategoryType;
+  transaction: $Enums.TransactionType;
+  amount: number;
+}
+
+const getDataOrder = async (
+  currs: TransactionInput[],
+  prevs: TransactionInput[]
+): Promise<DataOrder> => {
+  const current = {
+    expense:
+      currs
+        .filter(
+          (trans) =>
+            trans.category === "Product" && trans.transaction === "Expense"
+        )
+        .reduce((acc, trans) => acc + trans.amount, 0) || 0,
+    omzet:
+      currs
+        .filter(
+          (trans) =>
+            trans.category === "Product" && trans.transaction === "Income"
+        )
+        .reduce((acc, trans) => acc + trans.amount, 0) || 0,
+    operational:
+      currs
+        .filter(
+          (trans) =>
+            trans.category === "Operational" && trans.transaction === "Expense"
+        )
+        .reduce((acc, trans) => acc + trans.amount, 0) || 0,
+    netProfit: 0,
+  };
+
+  current.netProfit = current.omzet - current.expense - current.operational;
+
+  const previous = {
+    expense:
+      prevs
+        .filter(
+          (trans) =>
+            trans.category === "Product" && trans.transaction === "Expense"
+        )
+        .reduce((acc, order) => acc + order.amount, 0) || 0,
+    omzet:
+      prevs
+        .filter(
+          (trans) =>
+            trans.category === "Product" && trans.transaction === "Income"
+        )
+        .reduce((acc, order) => acc + order.amount, 0) || 0,
+    operational:
+      prevs
+        .filter(
+          (trans) =>
+            trans.category === "Operational" && trans.transaction === "Expense"
+        )
+        .reduce((acc, order) => acc + order.amount, 0) || 0,
+    netProfit: 0,
+  };
+
+  previous.netProfit = previous.omzet - previous.expense - previous.operational;
+
+  const gap = {
+    expense:
+      ((current.expense - previous.expense) / previous.expense) * 100 || 0,
+    omzet: ((current.omzet - previous.omzet) / previous.omzet) * 100 || 0,
+    operational:
+      ((current.operational - previous.operational) / previous.operational) *
+        100 || 0,
+    netProfit:
+      ((current.netProfit - previous.netProfit) / previous.netProfit) * 100 ||
+      0,
+  };
+
+  return {
+    current,
+    previous,
+    gap,
+  };
+};
+
+const getDataOrderDaily = async (
+  orders: TransactionInput[]
+): Promise<DataOrder> => {
   const currDate = new Date();
   const previousDate = new Date(currDate);
   previousDate.setDate(currDate.getDate() - 1); // Mengurangi satu hari
 
-  const previousOrders = orders.filter((order) => {
-    const orderDate = new Date(order.createdAt);
+  const prevs = orders.filter((order) => {
+    const date = new Date(order.createdAt);
     return (
-      orderDate.getFullYear() === previousDate.getFullYear() &&
-      orderDate.getMonth() === previousDate.getMonth() &&
-      orderDate.getDate() === previousDate.getDate()
+      date.getFullYear() === previousDate.getFullYear() &&
+      date.getMonth() === previousDate.getMonth() &&
+      date.getDate() === previousDate.getDate()
     );
   });
 
-  const filteredOrders = orders.filter((order) => {
-    const orderDate = new Date(order.createdAt);
+  const currs = orders.filter((order) => {
+    const date = new Date(order.createdAt);
     return (
-      orderDate.getFullYear() === currDate.getFullYear() &&
-      orderDate.getMonth() === currDate.getMonth() &&
-      orderDate.getDate() === currDate.getDate()
+      date.getFullYear() === currDate.getFullYear() &&
+      date.getMonth() === currDate.getMonth() &&
+      date.getDate() === currDate.getDate()
     );
   });
 
-  const currOmzet = filteredOrders.reduce((acc, order) => acc + order.total, 0);
-  const currCogs =
-    filteredOrders.reduce(
-      (acc, order) =>
-        acc +
-        order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0),
-      0
-    ) || 0;
-  const currNetProfit = currOmzet - currCogs;
-
-  const prevOmzet = previousOrders.reduce((acc, order) => acc + order.total, 0);
-  const prevCogs = previousOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0),
-    0
-  );
-  const prevNetProfit = prevOmzet - prevCogs;
-
-  const currOrderItem = filteredOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + (item.amount || 0), 0),
-    0
-  );
-  const prevOrderItem = previousOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + (item.amount || 0), 0),
-    0
-  );
-
-  const data: DataOrder = {
-    current: {
-      omzet: currOmzet,
-      cogs: currCogs,
-      netProfit: currNetProfit,
-      order: filteredOrders.length,
-      orderItem: currOrderItem,
-    },
-    previous: {
-      omzet: prevOmzet,
-      cogs: prevCogs,
-      netProfit: prevNetProfit,
-      order: previousOrders.length,
-      orderItem: prevOrderItem,
-    },
-    gap: {
-      omzet: ((currOmzet - prevOmzet) / prevOmzet) * 100 || 0,
-      cogs: ((currCogs - prevCogs) / prevCogs) * 100 || 0,
-      netProfit: ((currNetProfit - prevNetProfit) / prevNetProfit) * 100 || 0,
-      order:
-        ((filteredOrders.length - previousOrders.length) /
-          previousOrders.length) *
-          100 || 0,
-      orderItem: ((currOrderItem - prevOrderItem) / prevOrderItem) * 100 || 0,
-    },
-  };
-  return data;
+  return await getDataOrder(currs, prevs);
 };
 
 const getDataOrderWeekly = async (
-  orders: DetailOrder[]
+  orders: TransactionInput[]
 ): Promise<DataOrder> => {
   const currDate = new Date();
   const previousDate = new Date(currDate);
@@ -150,7 +169,7 @@ const getDataOrderWeekly = async (
   const fourteenDate = new Date(currDate);
   fourteenDate.setDate(currDate.getDate() - 14); // Empat belas hari yang lalu untuk rentang minggu lalu
 
-  const previousOrders = orders.filter((order) => {
+  const currs = orders.filter((order) => {
     const orderDate = new Date(order.createdAt);
     return (
       orderDate.getFullYear() === previousDate.getFullYear() &&
@@ -160,7 +179,7 @@ const getDataOrderWeekly = async (
     );
   });
 
-  const filteredOrders = orders.filter((order) => {
+  const prevs = orders.filter((order) => {
     const orderDate = new Date(order.createdAt);
     return (
       orderDate.getFullYear() === currDate.getFullYear() &&
@@ -170,81 +189,25 @@ const getDataOrderWeekly = async (
     );
   });
 
-  const currOmzet = filteredOrders.reduce((acc, order) => acc + order.total, 0);
-  const currCogs =
-    filteredOrders.reduce(
-      (acc, order) =>
-        acc +
-        order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0),
-      0
-    ) || 0;
-  const currNetProfit = currOmzet - currCogs;
-
-  const prevOmzet = previousOrders.reduce((acc, order) => acc + order.total, 0);
-  const prevCogs = previousOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0),
-    0
-  );
-  const prevNetProfit = prevOmzet - prevCogs;
-
-  const currOrderItem = filteredOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + (item.amount || 0), 0),
-    0
-  );
-  const prevOrderItem = previousOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + (item.amount || 0), 0),
-    0
-  );
-
-  const data: DataOrder = {
-    current: {
-      omzet: currOmzet,
-      cogs: currCogs,
-      netProfit: currNetProfit,
-      order: filteredOrders.length,
-      orderItem: currOrderItem,
-    },
-    previous: {
-      omzet: prevOmzet,
-      cogs: prevCogs,
-      netProfit: prevNetProfit,
-      order: previousOrders.length,
-      orderItem: prevOrderItem,
-    },
-    gap: {
-      omzet: ((currOmzet - prevOmzet) / prevOmzet) * 100 || 0,
-      cogs: ((currCogs - prevCogs) / prevCogs) * 100 || 0,
-      netProfit: ((currNetProfit - prevNetProfit) / prevNetProfit) * 100 || 0,
-      order:
-        ((filteredOrders.length - previousOrders.length) /
-          previousOrders.length) *
-          100 || 0,
-      orderItem: ((currOrderItem - prevOrderItem) / prevOrderItem) * 100 || 0,
-    },
-  };
-  return data;
+  return await getDataOrder(currs, prevs);
 };
 
 const getDataOrderMonthly = async (
-  orders: DetailOrder[]
+  orders: TransactionInput[]
 ): Promise<DataOrder> => {
   const currDate = new Date();
   const previousMonth = new Date(currDate);
   previousMonth.setMonth(currDate.getMonth() - 1); // Mengurangi satu bulan
 
-  const previousOrders = orders.filter((order) => {
+  const prevs = orders.filter((order) => {
     const orderDate = new Date(order.createdAt);
-    console.log({ previousMonth, orderDate });
     return (
       orderDate.getFullYear() === previousMonth.getFullYear() &&
       orderDate.getMonth() === previousMonth.getMonth()
     );
   });
 
-  const filteredOrders = orders.filter((order) => {
+  const currs = orders.filter((order) => {
     const orderDate = new Date(order.createdAt);
     return (
       orderDate.getFullYear() === currDate.getFullYear() &&
@@ -252,107 +215,13 @@ const getDataOrderMonthly = async (
     );
   });
 
-  const currOmzet = filteredOrders.reduce((acc, order) => acc + order.total, 0);
-  const currCogs =
-    filteredOrders.reduce(
-      (acc, order) =>
-        acc +
-        order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0),
-      0
-    ) || 0;
-  const currNetProfit = currOmzet - currCogs;
-
-  const prevOmzet = previousOrders.reduce((acc, order) => acc + order.total, 0);
-  const prevCogs = previousOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + item.product.cogs, 0),
-    0
-  );
-  const prevNetProfit = prevOmzet - prevCogs;
-
-  const currOrderItem = filteredOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + (item.amount || 0), 0),
-    0
-  );
-  const prevOrderItem = previousOrders.reduce(
-    (acc, order) =>
-      acc + order.orderItems.reduce((acc, item) => acc + (item.amount || 0), 0),
-    0
-  );
-
-  const data: DataOrder = {
-    current: {
-      omzet: currOmzet,
-      cogs: currCogs,
-      netProfit: currNetProfit,
-      order: filteredOrders.length,
-      orderItem: currOrderItem,
-    },
-    previous: {
-      omzet: prevOmzet,
-      cogs: prevCogs,
-      netProfit: prevNetProfit,
-      order: previousOrders.length,
-      orderItem: prevOrderItem,
-    },
-    gap: {
-      omzet: ((currOmzet - prevOmzet) / prevOmzet) * 100 || 0,
-      cogs: ((currCogs - prevCogs) / prevCogs) * 100 || 0,
-      netProfit: ((currNetProfit - prevNetProfit) / prevNetProfit) * 100 || 0,
-      order:
-        ((filteredOrders.length - previousOrders.length) /
-          previousOrders.length) *
-          100 || 0,
-      orderItem: ((currOrderItem - prevOrderItem) / prevOrderItem) * 100 || 0,
-    },
-  };
-
-  return data;
+  return await getDataOrder(currs, prevs);
 };
 
-const getAllDataOrder = async (orders: DetailOrder[]): Promise<DataOrder> => {
-  let omzet = 0;
-  let cogs = 0;
-  let netProfit = 0;
-  let orderItem = 0;
-
-  for (const order of orders) {
-    omzet += order.total;
-    netProfit += order.total;
-    for (const item of order.orderItems) {
-      cogs += item.product.cogs;
-      netProfit -= item.product.cogs;
-      orderItem += item.amount;
-    }
-  }
-
-  const current = {
-    omzet,
-    cogs,
-    netProfit,
-    order: orders.length,
-    orderItem,
-  };
-
-  const data: DataOrder = {
-    current,
-    previous: {
-      omzet: 0,
-      cogs: 0,
-      netProfit: 0,
-      order: 0,
-      orderItem: 0,
-    },
-    gap: {
-      omzet: 0,
-      cogs: 0,
-      netProfit: 0,
-      order: 0,
-      orderItem: 0,
-    },
-  };
-  return data;
+const getAllDataOrder = async (
+  currs: TransactionInput[]
+): Promise<DataOrder> => {
+  return await getDataOrder(currs, currs);
 };
 
 const getChartData = async (
@@ -374,35 +243,33 @@ const getChartData = async (
 
     if (findData) {
       findData.expense += item.amount;
-      findData.omzet -= item.amount;
+      findData.netProfit -= item.amount;
     } else {
       data.push({
         date: onlyDate,
         expense: -item.amount,
         omzet: 0,
-        netProfit: 0,
+        netProfit: -item.amount,
       });
     }
-
-    for (const item of incomes) {
-      const onlyDate = item?.createdAt?.toISOString()?.split("T")[0];
-
-      const findData = data.find((data) => data.date === onlyDate);
-
-      if (findData) {
-        findData.netProfit += item.amount;
-        findData.omzet += item.amount;
-      } else {
-        data.push({
-          date: onlyDate,
-          expense: 0,
-          omzet: item.amount,
-          netProfit: item.amount,
-        });
-      }
-    }
   }
+  for (const item of incomes) {
+    const onlyDate = item?.createdAt?.toISOString()?.split("T")[0];
 
+    const findData = data.find((data) => data.date === onlyDate);
+
+    if (findData) {
+      findData.netProfit += item.amount;
+      findData.omzet += item.amount;
+    } else {
+      data.push({
+        date: onlyDate,
+        expense: 0,
+        omzet: item.amount,
+        netProfit: item.amount,
+      });
+    }
+  }  
   return data;
 };
 
@@ -451,27 +318,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   bestProduct.sort((a, b) => b.sold - a.sold);
 
-  const orders = await db.order.findMany({
+  const transactions = await db.transaction.findMany({
     orderBy: {
       createdAt: "desc",
-    },
-    select: {
-      total: true,
-      createdAt: true,
-      orderItems: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        select: {
-          product: {
-            select: {
-              price: true,
-              cogs: true,
-            },
-          },
-          amount: true,
-        },
-      },
     },
     where: {
       AND: {
@@ -480,28 +329,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     },
   });
 
-  const dailyData = await getDataOrderDaily(orders as DetailOrder[]);
-  const monthlyData = await getDataOrderMonthly(orders as DetailOrder[]);
-  const weeklyData = await getDataOrderWeekly(orders as DetailOrder[]);
-  const allData = await getAllDataOrder(orders as DetailOrder[]);
-
-  const trans = await db.transaction.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    where: {
-      isDeleted: false,
-    },
-    select: {
-      category: true,
-      createdAt: true,
-      amount: true,
-      subCategory: true,
-      transaction: true,
-    },
-  });
-
-  const chartData = await getChartData(trans as Transaction[]);
+  const [dailyData, monthlyData, weeklyData, allData, chartData] =
+    await Promise.all([
+      getDataOrderDaily(transactions),
+      getDataOrderMonthly(transactions),
+      getDataOrderWeekly(transactions),
+      getAllDataOrder(transactions),
+      getChartData(transactions),
+    ]);
 
   const year = new Date().getFullYear().toString();
   const sevenDaysAgo = new Date().getDate() - 7;

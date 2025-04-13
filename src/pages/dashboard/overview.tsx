@@ -180,7 +180,8 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
   const { current, gap } = item;
   const isPositiveProfit = gap?.netProfit > 0;
   const isPositiveOmzet = gap?.omzet > 0;
-  const isPositiveOrder = gap?.order > 0;
+  const isPositiveExpense = gap?.expense > 0;
+  const isPositiveOperational = gap?.operational > 0;
   const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedItem = items.find((item) => item.name === e.target.value);
     if (selectedItem) setItem(selectedItem);
@@ -196,7 +197,7 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
           onChange={onChange}
         >
           {items.map((item, index) => (
-            <option key={index}>{item.name}</option>
+            <option key={index}>{item?.name}</option>
           ))}
         </select>
       </div>
@@ -235,21 +236,35 @@ const GridItemOrder: React.FC<PropsOrder> = ({ items }) => {
         </p>
       </div>
       <div>
-        <p className="text-sm text-neutral-600 font-normal">Order</p>
+        <p className="text-sm text-neutral-600 font-normal">Expense Purchases</p>
         <p className="text-xl text-neutral-800 font-semibold">
-          {current?.order}{" "}
-          <span className="text-neutral-600 text-sm">
-            ({current?.orderItem} products)
-          </span>{" "}
+          {formatRupiah(current?.expense)}{" "}
           {!isAll && (
             <span
               className={cn(
                 "text-sm",
-                isPositiveOrder ? "text-green-500" : "text-red-500"
+                isPositiveExpense ? "text-green-500" : "text-red-500"
               )}
             >
-              {isPositiveOrder ? "+" : ""}
-              {Number(gap?.orderItem)?.toFixed(1)}%
+              {isPositiveExpense ? "+" : ""}
+              {Number(gap?.netProfit)?.toFixed(1)}%
+            </span>
+          )}
+        </p>
+      </div>
+      <div>
+        <p className="text-sm text-neutral-600 font-normal">Operational</p>
+        <p className="text-xl text-neutral-800 font-semibold">
+          {formatRupiah(current?.operational)}{" "}
+          {!isAll && (
+            <span
+              className={cn(
+                "text-sm",
+                isPositiveOperational ? "text-green-500" : "text-red-500"
+              )}
+            >
+              {isPositiveOperational ? "+" : ""}
+              {Number(gap?.operational)?.toFixed(1)}%
             </span>
           )}
         </p>
@@ -263,9 +278,9 @@ interface ProductProps {
 }
 const GridProduct: React.FC<ProductProps> = ({ items }) => {
   return (
-    <div className="w-full bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 overflow-hidden overflow-x-auto h-full col-span-1">
+    <div className="w-full bg-white rounded-lg border border-gray-300 flex flex-col px-4 py-2 gap-2 overflow-hidden overflow-x-auto h-full max-h-[30rem] col-span-1">
       <h4 className="text-md text-neutral-700">Best Seller</h4>
-      <div className="w-full flex flex-col gap-2">
+      <div className="w-full flex flex-col gap-2 h-full overflow-auto">
         {items.map((item, index) => (
           <div
             key={index}
@@ -386,7 +401,7 @@ const GridChart: React.FC<ChartProps> = ({ items }) => {
 
             <Tooltip
               formatter={(value: number, name: string) => [
-                `Rp ${formatRupiah(value)}`,
+                formatRupiah(value),
                 name,
               ]}
             />

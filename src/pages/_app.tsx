@@ -4,6 +4,7 @@ import type { AppProps } from "next/app";
 import { ToastContainer } from "react-toastify";
 import { Provider } from "@/components/ui/provider";
 import Head from "next/head";
+import { LOGO } from "@/constants/image";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -17,7 +18,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <Head>
         <title>Kuasir</title>
         <meta name="description" content="Kuasir" />
-        <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="shortcut icon" href={LOGO} type="image/x-icon" />
       </Head>
       <AuthProvider>
         <Component {...pageProps} />
