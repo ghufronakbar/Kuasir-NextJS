@@ -41,6 +41,7 @@ const OutcomesPage = () => {
     otherAdminFee,
     setOtherAdminFee,
     onClickAdminFee,
+    getTotalOutcomesByDay,
   } = useOutcomes();
 
   const { decoded } = useAuth();
@@ -201,6 +202,17 @@ const OutcomesPage = () => {
         </Dialog.Root>
       }
     >
+      <div className="flex flex-col text-sm border bg-white border-gray-200 px-4 py-2 w-fit rounded-lg">
+        <p className="text-base font-semibold">Summary:</p>
+        <div className="flex flex-col max-h-24 overflow-y-auto">
+          {getTotalOutcomesByDay().map((item, index) => (
+            <div key={index} className="flex flex-row gap-2">
+              <div>{item.date}</div>
+              <div>{formatRupiah(item.total)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="relative overflow-x-auto">
         <table className="w-full text-sm text-left rtl:text-right text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50">
@@ -403,7 +415,7 @@ const useOutcomes = () => {
   const edit = async () => {
     try {
       const res = await api.put(`/product/outcome/${form.id}`, {
-        ...form,        
+        ...form,
         category: isOther ? other : form.category,
         adminFee: isOtherAdminFee
           ? Number(otherAdminFee)
@@ -448,6 +460,24 @@ const useOutcomes = () => {
   const isOther = form.category === "Other";
   const isOtherAdminFee = form.adminFee === "Other";
 
+  const getTotalOutcomesByDay = (): { date: string; total: number }[] => {
+    const filData: { date: string; total: number }[] = [];
+
+    for (const item of data) {
+      const date = formatDate(item.createdAt, true);
+
+      const findData = filData.find((data) => data.date === date);
+
+      if (findData) {
+        findData.total += item.price + item.adminFee;
+      } else {
+        filData.push({ date, total: item.price + item.adminFee });
+      }
+    }
+
+    return filData;
+  };
+
   return {
     data,
     Loading,
@@ -470,5 +500,6 @@ const useOutcomes = () => {
     otherAdminFee,
     setOtherAdminFee,
     onClickAdminFee,
+    getTotalOutcomesByDay,
   };
 };

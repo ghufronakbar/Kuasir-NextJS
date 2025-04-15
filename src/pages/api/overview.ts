@@ -1,5 +1,5 @@
 import { db } from "@/config/db";
-import formatDate from "@/helper/formatDate";
+// import formatDate from "@/helper/formatDate";
 import { $Enums, Transaction } from "@prisma/client";
 import { NextApiRequest, NextApiResponse } from "next/types";
 
@@ -24,8 +24,8 @@ export interface Overview {
   order: ReportOrder[];
   chart: {
     chartAnnualy: ChartData[];
-    chartMonthly: ChartData[];
-    chartWeekly: ChartData[];
+    // chartMonthly: ChartData[];
+    // chartWeekly: ChartData[];
     topProduct: BestProduct[];
   };
 }
@@ -241,13 +241,16 @@ const getChartData = async (
 
     const findData = data.find((data) => data.date === onlyDate);
 
+    if (onlyDate === "2025-04-13") {
+      console.log(item.amount);
+    }
     if (findData) {
       findData.expense += item.amount;
       findData.netProfit -= item.amount;
     } else {
       data.push({
         date: onlyDate,
-        expense: -item.amount,
+        expense: item.amount,
         omzet: 0,
         netProfit: -item.amount,
       });
@@ -269,7 +272,7 @@ const getChartData = async (
         netProfit: item.amount,
       });
     }
-  }  
+  }
   return data;
 };
 
@@ -339,15 +342,15 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     ]);
 
   const year = new Date().getFullYear().toString();
-  const sevenDaysAgo = new Date().getDate() - 7;
+  // const sevenDaysAgo = new Date().getDate() - 7;
 
-  const monthName = formatDate(new Date(), true).slice(3);
+  // const monthName = formatDate(new Date(), true).slice(3);
 
   const annualChart = chartData.filter((d) => d.date.includes(year));
-  const monthlyChart = chartData.filter((d) => d.date.includes(monthName));
-  const weeklyChart = chartData.filter(
-    (d) => Number(d.date.slice(-2)) <= sevenDaysAgo
-  );
+  // const monthlyChart = chartData.filter((d) => d.date.includes(monthName));
+  // const weeklyChart = chartData.filter(
+  //   (d) => Number(d.date.slice(-2)) <= sevenDaysAgo
+  // );
 
   const data: Overview = {
     order: [
@@ -357,9 +360,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       { ...weeklyData, name: "Weekly" },
     ],
     chart: {
-      chartMonthly: monthlyChart.reverse(),
+      // chartMonthly: monthlyChart.reverse(),
+      // chartWeekly: weeklyChart.reverse(),
       chartAnnualy: annualChart.reverse(),
-      chartWeekly: weeklyChart.reverse(),
       topProduct: bestProduct,
     },
   };

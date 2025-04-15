@@ -9,45 +9,26 @@ import { LoadingData } from "@/components/material/loading-data";
 import { PLACEHOLDER } from "@/constants/image";
 import { DetailOrderByDate } from "@/models/schema";
 import formatRupiah from "@/helper/formatRupiah";
-import { useBusiness } from "@/hooks/useBusiness";
 import { makeToast } from "@/helper/makeToast";
-import { $Enums } from "@prisma/client";
 
-const OrdersPage = () => {
-  const {
-    data: business,
-    selectedBusiness,
-    onChange: onChangeB,
-  } = useBusiness();
-  const { data, Loading, deleteOrder } = useOrders(
-    selectedBusiness as $Enums.Business
-  );
+const OrdersPage = () => {  
+  const { data, Loading, deleteOrder, totalByDate } = useOrders();
 
   return (
-    <DashboardLayout
-      title="Orders"
-      belowHeader={
-        <select
-          className="text-md text-neutral-700 font-semibold px-2 py-1 w-fit border border-gray-300 self-end rounded-md"
-          onChange={onChangeB}
-          value={selectedBusiness}
-        >
-          {business.map((item, index) => (
-            <option key={index} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-      }
-    >
-      <div className="flex flex-col">
+    <DashboardLayout title="Orders">
+      <div className="flex flex-col gap-4">
         {data.map((item, index) => (
           <div
             key={index}
             className="flex flex-col border border-white shadow-md rounded-lg overflow-x-hidden"
           >
-            <div className="w-full bg-gray-200 px-2 py-2 font-semibold text-xl">
-              {item.date}
+            <div className="flex flex-row justify-between items-center w-full bg-gray-200 px-2 py-2 font-semibold text-xl">
+              <div className="">
+                {item.date}
+              </div>
+              <div className="text-sm font-medium">
+                {formatRupiah(totalByDate(item))}
+              </div>
             </div>
             {item.orders.map((order) => (
               <div
@@ -168,17 +149,12 @@ const OrdersPage = () => {
 
 export default AuthPage(OrdersPage, ["CASHIER", "OWNER"]);
 
-const useOrders = (business: $Enums.Business) => {
+const useOrders = () => {
   const [d, setData] = useState<DetailOrderByDate[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const data = d.filter((item) =>
-    item.orders.some(
-      (order) => order.business === (business as $Enums.Business)
-    )
-  );
-  console.log({ d, data, business });
+  const data = d;
 
   const fetchData = async () => {
     setLoading(true);
@@ -210,6 +186,9 @@ const useOrders = (business: $Enums.Business) => {
     }
   };
 
+  const totalByDate = (item: DetailOrderByDate) =>
+    item.orders.reduce((acc, order) => acc + order.total, 0);
+
   const Loading = () => <LoadingData loading={loading} />;
 
   return {
@@ -218,5 +197,6 @@ const useOrders = (business: $Enums.Business) => {
     open,
     setOpen,
     deleteOrder,
+    totalByDate,
   };
 };

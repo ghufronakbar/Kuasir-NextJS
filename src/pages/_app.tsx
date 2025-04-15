@@ -16,7 +16,7 @@ export default function App({ Component, pageProps }: AppProps) {
       forcedTheme="light"
     >
       <Head>
-        <title>Kuasir</title>
+        <title>Kuasir ー クアシル</title>
         <meta name="description" content="Kuasir" />
         <link rel="shortcut icon" href={LOGO} type="image/x-icon" />
       </Head>
